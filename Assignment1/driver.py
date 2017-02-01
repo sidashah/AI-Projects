@@ -1,18 +1,24 @@
 import sys
+import math
 
 if len(sys.argv) == 3 :
-	arguments = sys.argv
-	
-	if arguments[1] == "bfs":
+	type = sys.argv[1]
+	grid = sys.argv[2].split(",")
+	dimen = int(math.sqrt(len(grid) + 1))
+	if math.pow(dimen, 2) != len(grid) + 1:
+		print "Input size of board is not correct"
+		exit()
+
+	if type == "bfs":
 		# Perform BFS
 		print "Performing BFS"
-	elif arguments[1] == "dfs":
+	elif type == "dfs":
 		# Perform DFS
 		print "Performing DFS"
-	elif arguments[1] == "ast":
+	elif type == "ast":
 		# Perform AST
 		print "Perform A-Star Search"
-	elif arguments[1] == "ida":
+	elif type == "ida":
 		# Perform IDA
 		print "Perform IDA-Star Search"
 	else :
