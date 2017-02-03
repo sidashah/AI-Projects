@@ -10,77 +10,62 @@ start_time = None
 end_time = None
 
 def goalTest(state):
-	dimen = len(state.board)
 	value = 0
-	for i in range(dimen):
-		for j in range(dimen):
-			if value != state.board[i][j]:
-				return False
-			value = value + 1
+	for i in state.board:
+		if value != i:
+			return False
+		value = value + 1
 	return True
 
-def print_board(state):
+"""def print_board(state):
 	dimen = len(state.board)
 	for i in range(dimen):
 		for j in range(dimen):
 			print state.board[i][j]," ",
 		print 
-	print state.operations,"\n"
+	print state.operations,"\n"""
 
 
 class State(object):
 
 	def __init__(self, array, dimen):
-		self.board = [[0 for x in range(dimen)] for y in range(dimen)]
-		self.operations = list()
+		self.board = array
+		self.dimen = dimen
+		#self.operations = list()
 		self.row = -1
 		self.col = -1
 		index = 0
 		for i in range(dimen):
 			for j in range(dimen):
-				self.board[i][j] = grid[index]
-				if self.board[i][j] == 0:
+				self.board[i*dimen + j] = grid[index]
+				if self.board[i*dimen + j] == 0:
 					self.row = i
 					self.col = j
 				index += 1
-	
+
 	def __str__(self):
-		return ''.join(map(str, [item for sublist in self.board for item in sublist]))
-
-	"""def __key(self):
-		l = list()
-		for line in self.board:
-			for ele in line:
-				l.append(ele)
-		return tuple(l)
-		#return str(self.board)
-
-	def __eq__(x, y):
-		return x.__key() == y.__key()
-
-	def __hash__(self):
-		return hash(self.__key())"""
+		return str(self.board)
 
 	def getUpNeighbour(self):
 		if self.row > 0:
 			newState = copy.deepcopy(self)
-			temp = newState.board[self.row-1][self.col]
-			newState.board[self.row][self.col] = temp
-			newState.board[self.row-1][self.col] = 0
+			temp = newState.board[(self.row-1)*self.dimen + self.col]
+			newState.board[self.row*self.dimen + self.col] = temp
+			newState.board[(self.row-1)*self.dimen + self.col] = 0
 			newState.row -= 1 
-			newState.operations.append('Up')
+			#newState.operations.append(1)
 			return newState
 		else :
 			return None
 
 	def getDownNeighbour(self):
-		if self.row < len(self.board) - 1 :
+		if self.row < self.dimen - 1 :
 			newState = copy.deepcopy(self)
-			temp = newState.board[self.row+1][self.col]
-			newState.board[self.row][self.col] = temp
-			newState.board[self.row+1][self.col] = 0
+			temp = newState.board[(self.row+1)*self.dimen + self.col]
+			newState.board[self.row*self.dimen + self.col] = temp
+			newState.board[(self.row+1)*self.dimen + self.col] = 0
 			newState.row += 1
-			newState.operations.append('Down')
+			#newState.operations.append(2)
 			return newState 
 		else :
 			return None
@@ -88,23 +73,23 @@ class State(object):
 	def getLeftNeighbour(self):
 		if self.col > 0:
 			newState = copy.deepcopy(self)
-			temp = newState.board[self.row][self.col-1]
-			newState.board[self.row][self.col] = temp
-			newState.board[self.row][self.col-1] = 0
+			temp = newState.board[self.row*self.dimen + self.col-1]
+			newState.board[self.row*self.dimen + self.col] = temp
+			newState.board[self.row*self.dimen + self.col-1] = 0
 			newState.col -= 1
-			newState.operations.append('Left') 
+			#newState.operations.append(3) 
 			return newState
 		else :
 			return None
 
 	def getRightNeighbour(self):
-		if self.col < len(self.board) - 1:
+		if self.col < self.dimen - 1:
 			newState = copy.deepcopy(self)
-			temp = newState.board[self.row][self.col+1]
-			newState.board[self.row][self.col] = temp
-			newState.board[self.row][self.col+1] = 0
+			temp = newState.board[self.row*self.dimen + self.col+1]
+			newState.board[self.row*self.dimen + self.col] = temp
+			newState.board[self.row*self.dimen + self.col+1] = 0
 			newState.col += 1
-			newState.operations.append('Right')
+			#newState.operations.append(4)
 			return newState
 		else :
 			return None
@@ -227,7 +212,9 @@ def performDFS(initialState,goalTest):
 			break
 
 		nodesExpanded = nodesExpanded + 1
-		print nodesExpanded
+		print "Nodes:",nodesExpanded
+		#print "Stack:",len(frontierStack)
+		#print "Explored:",len(explored)
 		upNeighbour = state.getUpNeighbour()
 		downNeighbour = state.getDownNeighbour()
 		leftNeighbour = state.getLeftNeighbour()
