@@ -31,7 +31,7 @@ class State(object):
 	def __init__(self, array, dimen):
 		self.board = array
 		self.dimen = dimen
-		#self.operations = list()
+		self.operations = list()
 		self.row = -1
 		self.col = -1
 		index = 0
@@ -53,7 +53,7 @@ class State(object):
 			newState.board[self.row*self.dimen + self.col] = temp
 			newState.board[(self.row-1)*self.dimen + self.col] = 0
 			newState.row -= 1 
-			#newState.operations.append(1)
+			newState.operations.append(1)
 			return newState
 		else :
 			return None
@@ -65,7 +65,7 @@ class State(object):
 			newState.board[self.row*self.dimen + self.col] = temp
 			newState.board[(self.row+1)*self.dimen + self.col] = 0
 			newState.row += 1
-			#newState.operations.append(2)
+			newState.operations.append(2)
 			return newState 
 		else :
 			return None
@@ -77,7 +77,7 @@ class State(object):
 			newState.board[self.row*self.dimen + self.col] = temp
 			newState.board[self.row*self.dimen + self.col-1] = 0
 			newState.col -= 1
-			#newState.operations.append(3) 
+			newState.operations.append(3) 
 			return newState
 		else :
 			return None
@@ -89,7 +89,7 @@ class State(object):
 			newState.board[self.row*self.dimen + self.col] = temp
 			newState.board[self.row*self.dimen + self.col+1] = 0
 			newState.col += 1
-			#newState.operations.append(4)
+			newState.operations.append(4)
 			return newState
 		else :
 			return None
@@ -137,25 +137,25 @@ def performBFS(initialState,goalTest):
 		if upNeighbour != None:
 			if max_search_depth < len(upNeighbour.operations):
 				max_search_depth = len(upNeighbour.operations)
-			if frontier.count(upNeighbour) == 0 and upNeighbour not in explored :
+			if upNeighbour not in explored and frontier.count(upNeighbour) == 0 :
 				frontier.append(upNeighbour)
 
 		if downNeighbour != None:
 			if max_search_depth < len(downNeighbour.operations):
 				max_search_depth = len(downNeighbour.operations)
-			if frontier.count(downNeighbour) == 0 and downNeighbour not in explored :
+			if downNeighbour not in explored and frontier.count(downNeighbour) == 0 :
 				frontier.append(downNeighbour)
 
 		if leftNeighbour != None:
 			if max_search_depth < len(leftNeighbour.operations):
 				max_search_depth = len(leftNeighbour.operations)
-			if frontier.count(leftNeighbour) == 0 and leftNeighbour not in explored :
+			if leftNeighbour not in explored and frontier.count(leftNeighbour) == 0 :
 				frontier.append(leftNeighbour)
 
 		if rightNeighbour != None:
 			if max_search_depth < len(rightNeighbour.operations):
 				max_search_depth = len(rightNeighbour.operations)
-			if frontier.count(rightNeighbour) == 0 and rightNeighbour not in explored :
+			if rightNeighbour not in explored and frontier.count(rightNeighbour) == 0 :
 				frontier.append(rightNeighbour)
 
 		if max_fringe_size < len(frontier):
@@ -182,6 +182,7 @@ def performBFS(initialState,goalTest):
 
 def performDFS(initialState,goalTest):
 	frontierStack = deque()
+	stackSet = Set()
 	explored = Set()
 	result = False
 	answer = None
@@ -192,6 +193,7 @@ def performDFS(initialState,goalTest):
 	max_search_depth = 0
 	max_ram_usage = 0
 	frontierStack.append(initialState)
+	stackSet.add(initialState)
 	#usage = resource.getrusage(resource.RUSAGE_SELF)
 	#if usage > max_ram_usage:
 	#	max_ram_usage = usage
@@ -199,6 +201,7 @@ def performDFS(initialState,goalTest):
 	#	max_fringe_size = len(frontierStack)
 	while len(frontierStack) != 0 :
 		state = frontierStack.pop()
+		stackSet.discard(state)
 		explored.add(state)
 
 		#usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -224,25 +227,25 @@ def performDFS(initialState,goalTest):
 		if rightNeighbour != None:
 			#if max_search_depth < len(rightNeighbour.operations):
 			#	max_search_depth = len(rightNeighbour.operations)
-			if frontierStack.count(rightNeighbour) == 0 and rightNeighbour not in explored :
+			if rightNeighbour not in explored and rightNeighbour not in stackSet:
 				frontierStack.append(rightNeighbour)
 
 		if leftNeighbour != None:
 			#if max_search_depth < len(leftNeighbour.operations):
 			#	max_search_depth = len(leftNeighbour.operations)
-			if frontierStack.count(leftNeighbour) == 0 and leftNeighbour not in explored :
+			if leftNeighbour not in explored and leftNeighbour not in stackSet:
 				frontierStack.append(leftNeighbour)
 
 		if downNeighbour != None:
 			#if max_search_depth < len(downNeighbour.operations):
 			#	max_search_depth = len(downNeighbour.operations)
-			if frontierStack.count(downNeighbour) == 0 and downNeighbour not in explored :
+			if downNeighbour not in explored and downNeighbour not in stackSet:
 				frontierStack.append(downNeighbour)
 
 		if upNeighbour != None:
 			#if max_search_depth < len(upNeighbour.operations):
 			#	max_search_depth = len(upNeighbour.operations)
-			if frontierStack.count(upNeighbour) == 0 and upNeighbour not in explored :
+			if upNeighbour not in explored and upNeighbour not in stackSet:
 				frontierStack.append(upNeighbour)
 	
 		#if max_fringe_size < len(frontierStack):
