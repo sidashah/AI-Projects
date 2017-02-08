@@ -17,27 +17,28 @@ def goalTest(state):
 		value = value + 1
 	return True
 
-"""def print_board(state):
-	dimen = len(state.board)
-	for i in range(dimen):
-		for j in range(dimen):
-			print state.board[i][j]," ",
-		print 
-	print state.operations,"\n"""
+def print_board(state):
+	length = state.dimen * state.dimen
+	for i in range(length):
+		print state.board[i]," ",
+		if (i+1) % state.dimen == 0:
+			print
+	print state.dimen
+	print state.row,",",state.col
+	print state.operations,"\n"
 
 
 class State(object):
 
 	def __init__(self, array, dimen):
-		self.board = array
+		self.board = list(array)
 		self.dimen = dimen
-		self.operations = list()
+		#self.operations = list()
 		self.row = -1
 		self.col = -1
 		index = 0
 		for i in range(dimen):
 			for j in range(dimen):
-				self.board[i*dimen + j] = grid[index]
 				if self.board[i*dimen + j] == 0:
 					self.row = i
 					self.col = j
@@ -46,53 +47,66 @@ class State(object):
 	def __str__(self):
 		return str(self.board)
 
-	def getUpNeighbour(self):
-		if self.row > 0:
-			newState = copy.deepcopy(self)
-			temp = newState.board[(self.row-1)*self.dimen + self.col]
-			newState.board[self.row*self.dimen + self.col] = temp
-			newState.board[(self.row-1)*self.dimen + self.col] = 0
-			newState.row -= 1 
-			newState.operations.append(1)
-			return newState
-		else :
-			return None
+	def __key(self):
+		return str(self.board)
 
-	def getDownNeighbour(self):
-		if self.row < self.dimen - 1 :
-			newState = copy.deepcopy(self)
-			temp = newState.board[(self.row+1)*self.dimen + self.col]
-			newState.board[self.row*self.dimen + self.col] = temp
-			newState.board[(self.row+1)*self.dimen + self.col] = 0
-			newState.row += 1
-			newState.operations.append(2)
-			return newState 
-		else :
-			return None
+	def __eq__(x, y):
+		return isinstance(y, x.__class__) and x.__key() == y.__key()
 
-	def getLeftNeighbour(self):
-		if self.col > 0:
-			newState = copy.deepcopy(self)
-			temp = newState.board[self.row*self.dimen + self.col-1]
-			newState.board[self.row*self.dimen + self.col] = temp
-			newState.board[self.row*self.dimen + self.col-1] = 0
-			newState.col -= 1
-			newState.operations.append(3) 
-			return newState
-		else :
-			return None
+	def __hash__(self):
+		return hash(self.__key())
 
-	def getRightNeighbour(self):
-		if self.col < self.dimen - 1:
-			newState = copy.deepcopy(self)
-			temp = newState.board[self.row*self.dimen + self.col+1]
-			newState.board[self.row*self.dimen + self.col] = temp
-			newState.board[self.row*self.dimen + self.col+1] = 0
-			newState.col += 1
-			newState.operations.append(4)
-			return newState
-		else :
-			return None
+def getUpNeighbour(state):
+	if state.row > 0:
+		newState = State(state.board, state.dimen)
+		#newState.operations = state.operations[:]
+		temp = newState.board[(newState.row-1)*newState.dimen + newState.col]
+		newState.board[newState.row * newState.dimen + newState.col] = temp
+		newState.board[(newState.row-1)*newState.dimen + newState.col] = 0
+		newState.row -= 1 
+		#newState.operations.append(1)
+		return newState
+	else :
+		return None
+
+def getDownNeighbour(state):
+	if state.row < state.dimen - 1 :
+		newState = State(state.board, state.dimen)
+		#newState.operations = state.operations[:]
+		temp = newState.board[(newState.row+1)*newState.dimen + newState.col]
+		newState.board[newState.row*newState.dimen + newState.col] = temp
+		newState.board[(newState.row+1)*newState.dimen + newState.col] = 0
+		newState.row += 1
+		#newState.operations.append(2)
+		return newState 
+	else :
+		return None
+
+def getLeftNeighbour(state):
+	if state.col > 0:
+		newState = State(state.board, state.dimen)
+		#newState.operations = state.operations[:]
+		temp = newState.board[newState.row*newState.dimen + newState.col-1]
+		newState.board[newState.row*newState.dimen + newState.col] = temp
+		newState.board[newState.row*newState.dimen + newState.col-1] = 0
+		newState.col -= 1
+		#newState.operations.append(3) 
+		return newState
+	else :
+		return None
+
+def getRightNeighbour(state):
+	if state.col < state.dimen - 1:
+		newState = State(state.board, state.dimen)
+		#newState.operations = state.operations[:]
+		temp = newState.board[newState.row*newState.dimen + newState.col+1]
+		newState.board[newState.row*newState.dimen + newState.col] = temp
+		newState.board[newState.row*newState.dimen + newState.col+1] = 0
+		newState.col += 1
+		#newState.operations.append(4)
+		return newState
+	else :
+		return None
 
 
 def performBFS(initialState,goalTest):
@@ -116,6 +130,7 @@ def performBFS(initialState,goalTest):
 	while len(frontier) != 0 :
 		state = frontier.popleft()
 		explored.add(state)
+
 		usage = resource.getrusage(resource.RUSAGE_SELF)
 		if usage > max_ram_usage:
 			max_ram_usage = usage
@@ -126,35 +141,50 @@ def performBFS(initialState,goalTest):
 			fringe_size = len(frontier)
 			break
 
-		upNeighbour = state.getUpNeighbour()
-		downNeighbour = state.getDownNeighbour()
-		leftNeighbour = state.getLeftNeighbour()
-		rightNeighbour = state.getRightNeighbour()
+		print "current"
+		print_board(state)
+		print "u"
+		upNeighbour = getUpNeighbour(state)
+		if(upNeighbour):
+			print_board(upNeighbour)
+		print "d"
+		downNeighbour = getDownNeighbour(state)
+		if(downNeighbour):
+			print_board(downNeighbour)
+		print "l"
+		leftNeighbour = getLeftNeighbour(state)
+		if(leftNeighbour):
+			print_board(leftNeighbour)
+		print "r"
+		rightNeighbour = getRightNeighbour(state)
+		if(rightNeighbour):
+			print_board(rightNeighbour)
 
 		nodesExpanded = nodesExpanded + 1
+		print nodesExpanded
 		del state
 
 		if upNeighbour != None:
-			if max_search_depth < len(upNeighbour.operations):
-				max_search_depth = len(upNeighbour.operations)
+			#if max_search_depth < len(upNeighbour.operations):
+			#	max_search_depth = len(upNeighbour.operations)
 			if upNeighbour not in explored and frontier.count(upNeighbour) == 0 :
 				frontier.append(upNeighbour)
 
 		if downNeighbour != None:
-			if max_search_depth < len(downNeighbour.operations):
-				max_search_depth = len(downNeighbour.operations)
+			#if max_search_depth < len(downNeighbour.operations):
+			#	max_search_depth = len(downNeighbour.operations)
 			if downNeighbour not in explored and frontier.count(downNeighbour) == 0 :
 				frontier.append(downNeighbour)
 
 		if leftNeighbour != None:
-			if max_search_depth < len(leftNeighbour.operations):
-				max_search_depth = len(leftNeighbour.operations)
+			#if max_search_depth < len(leftNeighbour.operations):
+			#	max_search_depth = len(leftNeighbour.operations)
 			if leftNeighbour not in explored and frontier.count(leftNeighbour) == 0 :
 				frontier.append(leftNeighbour)
 
 		if rightNeighbour != None:
-			if max_search_depth < len(rightNeighbour.operations):
-				max_search_depth = len(rightNeighbour.operations)
+			#if max_search_depth < len(rightNeighbour.operations):
+			#	max_search_depth = len(rightNeighbour.operations)
 			if rightNeighbour not in explored and frontier.count(rightNeighbour) == 0 :
 				frontier.append(rightNeighbour)
 
@@ -192,6 +222,9 @@ def performDFS(initialState,goalTest):
 	search_depth = 0
 	max_search_depth = 0
 	max_ram_usage = 0
+	usage = resource.getrusage(resource.RUSAGE_SELF)
+	if usage > max_ram_usage:
+		max_ram_usage = usage
 	frontierStack.append(initialState)
 	stackSet.add(initialState)
 	#usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -203,6 +236,8 @@ def performDFS(initialState,goalTest):
 		state = frontierStack.pop()
 		stackSet.discard(state)
 		explored.add(state)
+		print "size", sys.getsizeof(state.board)
+		#print "size", sys.getsizeof(state.operations)
 
 		#usage = resource.getrusage(resource.RUSAGE_SELF)
 		#if usage > max_ram_usage:
@@ -218,35 +253,38 @@ def performDFS(initialState,goalTest):
 		print "Nodes:",nodesExpanded
 		#print "Stack:",len(frontierStack)
 		#print "Explored:",len(explored)
-		upNeighbour = state.getUpNeighbour()
-		downNeighbour = state.getDownNeighbour()
-		leftNeighbour = state.getLeftNeighbour()
-		rightNeighbour = state.getRightNeighbour()
-		del state
+		upNeighbour = getUpNeighbour(state)
+		downNeighbour = getDownNeighbour(state)
+		leftNeighbour = getLeftNeighbour(state)
+		rightNeighbour = getRightNeighbour(state)
 
 		if rightNeighbour != None:
 			#if max_search_depth < len(rightNeighbour.operations):
 			#	max_search_depth = len(rightNeighbour.operations)
 			if rightNeighbour not in explored and rightNeighbour not in stackSet:
 				frontierStack.append(rightNeighbour)
+				stackSet.add(rightNeighbour)
 
 		if leftNeighbour != None:
 			#if max_search_depth < len(leftNeighbour.operations):
 			#	max_search_depth = len(leftNeighbour.operations)
 			if leftNeighbour not in explored and leftNeighbour not in stackSet:
 				frontierStack.append(leftNeighbour)
+				stackSet.add(leftNeighbour)
 
 		if downNeighbour != None:
 			#if max_search_depth < len(downNeighbour.operations):
 			#	max_search_depth = len(downNeighbour.operations)
 			if downNeighbour not in explored and downNeighbour not in stackSet:
 				frontierStack.append(downNeighbour)
+				stackSet.add(downNeighbour)
 
 		if upNeighbour != None:
 			#if max_search_depth < len(upNeighbour.operations):
 			#	max_search_depth = len(upNeighbour.operations)
 			if upNeighbour not in explored and upNeighbour not in stackSet:
 				frontierStack.append(upNeighbour)
+				stackSet.add(upNeighbour)
 	
 		#if max_fringe_size < len(frontierStack):
 		#	max_fringe_size = len(frontierStack)
@@ -256,19 +294,18 @@ def performDFS(initialState,goalTest):
 			#max_ram_usage = usage
 
 	if result:
-		print "path_to_goal:", state.operations
-		print "cost_of_path:", len(state.operations)
+		#print "path_to_goal:", state.operations
+		#print "cost_of_path:", len(state.operations)
 		print "nodes_expanded:", nodesExpanded
 		print len(explored)
 		print len(frontierStack)
 		print "fringe_size:", fringe_size
 		print "max_fringe_size:", max_fringe_size
-		print "search_depth:", len(state.operations)
+		#print "search_depth:", len(state.operations)
 		print "max_search_depth:", max_search_depth
 		end_time = datetime.datetime.now()
 		print "running_time: %.8f" %(end_time - start_time).total_seconds()
 		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
-
 
 if len(sys.argv) == 3 :
 	type = sys.argv[1]
@@ -295,5 +332,3 @@ if len(sys.argv) == 3 :
 		print "Invalid command line arguments"
 else :
 	print "Invalid number of command line arguments"
-
-
