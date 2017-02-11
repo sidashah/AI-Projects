@@ -5,6 +5,7 @@ from sets import Set
 import copy
 import datetime
 import resource
+import heapq
 
 start_time = None
 end_time = None
@@ -104,6 +105,9 @@ def getRightNeighbour(state):
 		return newState
 	else :
 		return None
+
+
+
 
 
 def performBFS(initialState,goalTest):
@@ -212,6 +216,11 @@ def performBFS(initialState,goalTest):
 	else:
 		print "No solution found"
 
+
+
+
+
+
 def performDFS(initialState,goalTest):
 	frontierStack = deque()
 	stackSet = Set()
@@ -319,6 +328,157 @@ def performDFS(initialState,goalTest):
 		print "running_time: %.8f" %(end_time - start_time).total_seconds()
 		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
 
+
+def performAST(initialState,goalTest):
+	frontierHeap = []
+	explored = Set()
+	frontierSet = Set()
+	result = False
+	answer = None
+	fringe_size = 0
+	max_fringe_size = 0
+	nodesExpanded = 0
+	search_depth = 0
+	max_search_depth = 0
+	max_ram_usage = 0
+	usage = resource.getrusage(resource.RUSAGE_SELF)
+	if usage > max_ram_usage:
+		max_ram_usage = usage
+
+	item = (getHeuristic(initialState), initialState)
+	frontierSet.add(initialState)
+	heapq.heappush(frontierHeap, item)
+
+	
+	while len(frontierHeap) != 0 :
+		state = heapq.heappop(frontierHeap)
+		#Doubt regarding two states having same board but different boards
+		explored.add(state)
+		if max_search_depth < state.depth:
+				max_search_depth = state.depth
+
+		if(goalTest(state)):
+			result = True
+			answer = state
+			fringe_size = len(frontierHeap)
+			break
+
+		nodesExpanded = nodesExpanded + 1
+		upNeighbour = getUpNeighbour(state)
+		downNeighbour = getDownNeighbour(state)
+		leftNeighbour = getLeftNeighbour(state)
+		rightNeighbour = getRightNeighbour(state)
+		del state
+
+		if rightNeighbour != None:
+			if rightNeighbour not in explored and rightNeighbour not in frontierSet:
+				item = (getHeuristic(rightNeighbour), rightNeighbour)
+				heapq.heappush(frontierHeap, item)
+				frontierSet.add(rightNeighbour)
+			elif rightNeighbour in frontierSet:
+				decreaseKey(frontierHeap, rightNeighbour)
+				
+		if leftNeighbour != None:
+			if leftNeighbour not in explored and leftNeighbour not in frontierSet:
+				item = (getHeuristic(leftNeighbour), leftNeighbour)
+				heapq.heappush(frontierHeap, item)
+				frontierSet.add(leftNeighbour)
+			elif leftNeighbour in frontierSet:
+				decreaseKey(frontierHeap, leftNeighbour)
+				
+
+		if downNeighbour != None:
+			if downNeighbour not in explored and downNeighbour not in frontierSet:
+				item = (getHeuristic(downNeighbour), downNeighbour)
+				heapq.heappush(frontierHeap, item)
+				frontierSet.add(downNeighbour)
+			elif downNeighbour in frontierSet:
+				decreaseKey(frontierHeap, downNeighbour)
+				
+		if upNeighbour != None:
+			if upNeighbour not in explored and upNeighbour not in frontierSet:
+				item = (getHeuristic(upNeighbour), upNeighbour)
+				heapq.heappush(frontierHeap, item)
+				frontierSet.add(upNeighbour)
+			elif upNeighbour in frontierSet:
+				decreaseKey(frontierHeap, upNeighbour)
+				
+	
+		if max_fringe_size < len(frontierHeap):
+			max_fringe_size = len(frontierHeap)
+
+	
+	if result:
+		answerStack = list()
+		
+		while(answer.parent != None):
+			current_row = answer.row
+			current_col = answer.col
+			answer = answer.parent
+			row_operation = current_row - answer.row
+			col_operation = current_col - answer.col
+			if(row_operation != 0):
+				if(row_operation == -1):
+					answerStack.append('Up')
+				else:
+					answerStack.append('Down')
+			else:
+				if(col_operation == -1):
+					answerStack.append('Left')
+				else:
+					answerStack.append('Right')
+
+		answerStack.reverse()
+		print "path_to_goal:", answerStack
+		print "cost_of_path:", len(answerStack)
+		print "nodes_expanded:", nodesExpanded
+		print "fringe_size:", fringe_size
+		print "max_fringe_size:", max_fringe_size
+		print "search_depth:", len(answerStack)
+		print "max_search_depth:", max_search_depth
+		end_time = datetime.datetime.now()
+		print "running_time: %.8f" %(end_time - start_time).total_seconds()
+		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
+
+
+def decreaseKey(heap, newstate):
+	for i in range(len(heap)):
+		(prio, oldstate) = h[i]
+		if newstate == oldstate and getHeuristic(newState) < getHeuristic(oldstate):
+			heap[i] = h[-1]
+			heap.pop()
+			item =(getHeuristic(newstate), newState)
+			heapq.heappush(heap, item)
+			heapq.heapify(heap)
+
+def getHeuristic(state):
+	return getMisplacedTilesCount(state) + getManhattanDistance(state)
+
+def getMisplacedTilesCount(state):
+	count = 0
+	value = 0
+	for i in state.board:
+		if i != 0:
+			if value != i:
+				count += 1
+		value = value + 1
+	return count
+
+
+def getManhattanDistance(state):
+	distance = 0
+	row = 0
+	col = 0
+	for y in range(state.dimen):
+		for x in range(state.dimen):
+			val = state.board[y*state.dimen + x]
+			if val != 0:
+				yPos = val / state.dimen
+				xPos = val % state.dimen
+				distance += abs(y - yPos) + abs(x - xPos)
+	return distance
+
+
 if len(sys.argv) == 3 :
 	type = sys.argv[1]
 	grid = map(int, sys.argv[2].split(","))
@@ -337,6 +497,7 @@ if len(sys.argv) == 3 :
 	elif type == "ast":
 		# Perform AST
 		print "Perform A-Star Search"
+		performAST(initialState, goalTest)
 	elif type == "ida":
 		# Perform IDA
 		print "Perform IDA-Star Search"
