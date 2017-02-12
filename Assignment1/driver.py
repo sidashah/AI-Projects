@@ -441,13 +441,106 @@ def performAST(initialState,goalTest):
 		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
 
 
+def performIDA(initialState, goalTest):
+	frontierHeap = []
+	explored = Set()
+	frontierSet = Set()
+	result = False
+	answer = None
+	fringe_size = 0
+	max_fringe_size = 0
+	nodesExpanded = 0
+	search_depth = 0
+	max_search_depth = 0
+	max_ram_usage = 0
+	usage = resource.getrusage(resource.RUSAGE_SELF)
+	if usage > max_ram_usage:
+		max_ram_usage = usage
+
+	#bound = getManhattanDistance()
+	depth = 0
+	while depth > -1 :
+		foundState = performDLS(initialState, depth)
+		if foundState:
+			result = True
+			answer = foundState
+			break
+		print depth
+		depth += 1
+
+	if result:
+		answerStack = list()
+		print "Answer"
+		while(answer.parent != None):
+			current_row = answer.row
+			current_col = answer.col
+			answer = answer.parent
+			row_operation = current_row - answer.row
+			col_operation = current_col - answer.col
+			if(row_operation != 0):
+				if(row_operation == -1):
+					answerStack.append('Up')
+				else:
+					answerStack.append('Down')
+			else:
+				if(col_operation == -1):
+					answerStack.append('Left')
+				else:
+					answerStack.append('Right')
+
+		answerStack.reverse()
+		print "path_to_goal:", answerStack
+
+	else:
+		print "No answer"
+
+"""
+	Learnt from Iterative Deepening Depth First Search
+	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
+
+"""
+def performDLS(state, depth):
+	if depth == 0 and goalTest(state):
+		return state
+	if depth > 0:
+		upNeighbour = getUpNeighbour(state)
+
+		if upNeighbour != None:
+			foundState = performDLS(upNeighbour, depth - 1)
+			if foundState:
+				return foundState
+
+		downNeighbour = getDownNeighbour(state)
+
+		if downNeighbour != None:
+			foundState = performDLS(downNeighbour, depth - 1)
+			if foundState:
+				return foundState
+
+		leftNeighbour = getLeftNeighbour(state)
+
+		if leftNeighbour != None:
+			foundState = performDLS(leftNeighbour, depth - 1)
+			if foundState:
+				return foundState
+
+		rightNeighbour = getRightNeighbour(state)
+
+		if rightNeighbour != None:
+			foundState = performDLS(rightNeighbour, depth - 1)
+			if foundState:
+				return foundState
+		
+	return None
+
+
 def decreaseKey(heap, newstate):
 	for i in range(len(heap)):
 		(prio, oldstate) = heap[i]
-		if newstate == oldstate and getHeuristic(newState) < getHeuristic(oldstate):
+		if newstate == oldstate and getHeuristic(newstate) < getHeuristic(oldstate):
 			heap[i] = h[-1]
 			heap.pop()
-			item =(getHeuristic(newstate), newState)
+			item =(getHeuristic(newstate), newstate)
 			heapq.heappush(heap, item)
 			heapq.heapify(heap)
 
@@ -501,6 +594,7 @@ if len(sys.argv) == 3 :
 	elif type == "ida":
 		# Perform IDA
 		print "Perform IDA-Star Search"
+		performIDA(initialState, goalTest)
 	else :
 		print "Invalid command line arguments"
 else :
