@@ -47,10 +47,10 @@ class State(object):
 				index += 1
 
 	def __str__(self):
-		return str(self.board)
+		return tuple(self.board)
 
 	def __key(self):
-		return str(self.board)
+		return tuple(self.board)
 
 	def __eq__(x, y):
 		return isinstance(y, x.__class__) and x.__key() == y.__key()
@@ -148,6 +148,7 @@ def performBFS(initialState,goalTest):
 		rightNeighbour = getRightNeighbour(state)
 
 		nodesExpanded = nodesExpanded + 1
+		print nodesExpanded
 		del state
 
 		if upNeighbour != None:
@@ -238,23 +239,14 @@ def performDFS(initialState,goalTest):
 		max_ram_usage = usage
 	frontierStack.append(initialState)
 	stackSet.add(initialState)
-	#usage = resource.getrusage(resource.RUSAGE_SELF)
-	#if usage > max_ram_usage:
-	#	max_ram_usage = usage
-	#if max_fringe_size < len(frontierStack):
-	#	max_fringe_size = len(frontierStack)
+	
 	while len(frontierStack) != 0 :
 		state = frontierStack.pop()
 		stackSet.discard(state)
 		explored.add(state)
 		if max_search_depth < state.depth:
 				max_search_depth = state.depth
-		#print "size", sys.getsizeof(state.board)
-		#print "size", sys.getsizeof(state.operations)
-
-		#usage = resource.getrusage(resource.RUSAGE_SELF)
-		#if usage > max_ram_usage:
-		#	max_ram_usage = usage
+		
 
 		if(goalTest(state)):
 			result = True
@@ -291,10 +283,6 @@ def performDFS(initialState,goalTest):
 	
 		if max_fringe_size < len(frontierStack):
 			max_fringe_size = len(frontierStack)
-
-		#usage = resource.getrusage(resource.RUSAGE_SELF)
-		#if usage > max_ram_usage:
-			#max_ram_usage = usage
 
 	if result:
 		answerStack = list()
@@ -345,7 +333,7 @@ def performAST(initialState,goalTest):
 	if usage > max_ram_usage:
 		max_ram_usage = usage
 
-	item = (getHeuristic(initialState), initialState)
+	item = (getFValue(initialState), initialState)
 	frontierSet.add(initialState)
 	heapq.heappush(frontierHeap, item)
 
@@ -372,7 +360,7 @@ def performAST(initialState,goalTest):
 
 		if rightNeighbour != None:
 			if rightNeighbour not in explored and rightNeighbour not in frontierSet:
-				item = (getHeuristic(rightNeighbour), rightNeighbour)
+				item = (getFValue(rightNeighbour), rightNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(rightNeighbour)
 			elif rightNeighbour in frontierSet:
@@ -380,7 +368,7 @@ def performAST(initialState,goalTest):
 				
 		if leftNeighbour != None:
 			if leftNeighbour not in explored and leftNeighbour not in frontierSet:
-				item = (getHeuristic(leftNeighbour), leftNeighbour)
+				item = (getFValue(leftNeighbour), leftNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(leftNeighbour)
 			elif leftNeighbour in frontierSet:
@@ -389,7 +377,7 @@ def performAST(initialState,goalTest):
 
 		if downNeighbour != None:
 			if downNeighbour not in explored and downNeighbour not in frontierSet:
-				item = (getHeuristic(downNeighbour), downNeighbour)
+				item = (getFValue(downNeighbour), downNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(downNeighbour)
 			elif downNeighbour in frontierSet:
@@ -397,7 +385,7 @@ def performAST(initialState,goalTest):
 				
 		if upNeighbour != None:
 			if upNeighbour not in explored and upNeighbour not in frontierSet:
-				item = (getHeuristic(upNeighbour), upNeighbour)
+				item = (getFValue(upNeighbour), upNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(upNeighbour)
 			elif upNeighbour in frontierSet:
@@ -457,16 +445,16 @@ def performIDA(initialState, goalTest):
 	if usage > max_ram_usage:
 		max_ram_usage = usage
 
-	#bound = getManhattanDistance()
 	depth = 0
+	bound = getHeuristic(initialState)
 	while depth > -1 :
-		foundState = performDLS(initialState, depth)
-		if foundState:
+		ret_tuple = performDLS(initialState, depth, bound)
+		if ret_tuple[0]:
 			result = True
-			answer = foundState
+			answer = ret_tuple[0]
 			break
 		print depth
-		depth += 1
+		bound = ret_tuple[1]
 
 	if result:
 		answerStack = list()
@@ -499,50 +487,68 @@ def performIDA(initialState, goalTest):
 	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
 
 """
-def performDLS(state, depth):
-	if depth == 0 and goalTest(state):
-		return state
-	if depth > 0:
-		upNeighbour = getUpNeighbour(state)
+def performDLS(state, depth, bound):
+	f = depth + getHeuristic(state)
+	if f > bound:
+		return (None, f)
 
-		if upNeighbour != None:
-			foundState = performDLS(upNeighbour, depth - 1)
-			if foundState:
-				return foundState
+	print_board(state)
+	if goalTest(state):
+		return (state,-1)
 
-		downNeighbour = getDownNeighbour(state)
+	min = sys.maxint
 
-		if downNeighbour != None:
-			foundState = performDLS(downNeighbour, depth - 1)
-			if foundState:
-				return foundState
+	upNeighbour = getUpNeighbour(state)
 
-		leftNeighbour = getLeftNeighbour(state)
+	if upNeighbour != None:
+		ret_tuple = performDLS(upNeighbour, depth+1, bound)
+		if ret_tuple[0]:
+			return ret_tuple
+		if ret_tuple[1] < min:
+			min = ret_tuple[1]
 
-		if leftNeighbour != None:
-			foundState = performDLS(leftNeighbour, depth - 1)
-			if foundState:
-				return foundState
+	downNeighbour = getDownNeighbour(state)
 
-		rightNeighbour = getRightNeighbour(state)
+	if downNeighbour != None:
+		ret_tuple = performDLS(downNeighbour, depth+1, bound)
+		if ret_tuple[0]:
+			return ret_tuple
+		if ret_tuple[1] < min:
+			min = ret_tuple[1]
 
-		if rightNeighbour != None:
-			foundState = performDLS(rightNeighbour, depth - 1)
-			if foundState:
-				return foundState
+	leftNeighbour = getLeftNeighbour(state)
+
+	if leftNeighbour != None:
+		ret_tuple = performDLS(leftNeighbour, depth+1, bound)
+		if ret_tuple[0]:
+			return ret_tuple
+		if ret_tuple[1] < min:
+			min = ret_tuple[1]
+
+	rightNeighbour = getRightNeighbour(state)
+
+	if rightNeighbour != None:
+		ret_tuple = performDLS(rightNeighbour, depth+1, bound)
+		if ret_tuple[0]:
+			return ret_tuple
+		if ret_tuple[1] < min:
+			min = ret_tuple[1]
 		
-	return None
+	return (None, min)
 
 
 def decreaseKey(heap, newstate):
 	for i in range(len(heap)):
 		(prio, oldstate) = heap[i]
-		if newstate == oldstate and getHeuristic(newstate) < getHeuristic(oldstate):
-			heap[i] = h[-1]
+		if newstate == oldstate and getFValue(newstate) < getFValue(oldstate):
+			heap[i] = heap[-1]
 			heap.pop()
-			item =(getHeuristic(newstate), newstate)
+			item =(getFValue(newstate), newstate)
 			heapq.heappush(heap, item)
 			heapq.heapify(heap)
+
+def getFValue(state):
+	return state.depth + getHeuristic(state)
 
 def getHeuristic(state):
 	return getMisplacedTilesCount(state) + getManhattanDistance(state)
