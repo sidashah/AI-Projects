@@ -351,7 +351,7 @@ def performAST(initialState,goalTest):
 
 	
 	while len(frontierHeap) != 0 :
-		state = heapq.heappop(frontierHeap)
+		(prio,state) = heapq.heappop(frontierHeap)
 		#Doubt regarding two states having same board but different boards
 		explored.add(state)
 		if max_search_depth < state.depth:
@@ -443,7 +443,7 @@ def performAST(initialState,goalTest):
 
 def decreaseKey(heap, newstate):
 	for i in range(len(heap)):
-		(prio, oldstate) = h[i]
+		(prio, oldstate) = heap[i]
 		if newstate == oldstate and getHeuristic(newState) < getHeuristic(oldstate):
 			heap[i] = h[-1]
 			heap.pop()
