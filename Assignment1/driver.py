@@ -9,6 +9,15 @@ import heapq
 
 start_time = None
 end_time = None
+nodes_expanded_ida = 0
+max_fringe_size_ida = 0
+usage_ida = None
+max_ram_usage_ida = None
+"""
+	References:
+	https://docs.python.org/2/library/heapq.html
+	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
+"""
 
 def goalTest(state):
 	value = 0
@@ -32,7 +41,7 @@ def write_to_file(dictionary):
 	f.close()
 
 
-"""def print_board(state):
+def print_board(state):
 	length = state.dimen * state.dimen
 	for i in range(length):
 		print state.board[i]," ",
@@ -61,7 +70,7 @@ def write_to_file(dictionary):
 				answerStack.append('Right')
 
 	answerStack.reverse()
-	print "operations",answerStack"""
+	print "operations",answerStack
 
 
 class State(object):
@@ -145,6 +154,7 @@ def getRightNeighbour(state):
 
 def performBFS(initialState,goalTest):
 	frontier = deque()
+	frontierSet = Set()
 	explored = Set()
 	result = False
 	answer = None
@@ -155,6 +165,7 @@ def performBFS(initialState,goalTest):
 	max_search_depth = 0
 	max_ram_usage = 0
 	frontier.append(initialState)
+	frontierSet.add(initialState)
 	usage = resource.getrusage(resource.RUSAGE_SELF)
 	if usage > max_ram_usage:
 		max_ram_usage = usage
@@ -163,6 +174,7 @@ def performBFS(initialState,goalTest):
 
 	while len(frontier) != 0 :
 		state = frontier.popleft()
+		frontierSet.discard(state)
 		explored.add(state)
 
 		usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -186,26 +198,30 @@ def performBFS(initialState,goalTest):
 		if upNeighbour != None:
 			if max_search_depth < upNeighbour.depth:
 				max_search_depth = upNeighbour.depth
-			if upNeighbour not in explored and frontier.count(upNeighbour) == 0 :
+			if upNeighbour not in explored and upNeighbour not in frontierSet :
 				frontier.append(upNeighbour)
+				frontierSet.add(upNeighbour)
 
 		if downNeighbour != None:
 			if max_search_depth < downNeighbour.depth:
 				max_search_depth = downNeighbour.depth
-			if downNeighbour not in explored and frontier.count(downNeighbour) == 0 :
+			if downNeighbour not in explored and downNeighbour not in frontierSet :
 				frontier.append(downNeighbour)
+				frontierSet.add(downNeighbour)
 
 		if leftNeighbour != None:
 			if max_search_depth < leftNeighbour.depth:
 				max_search_depth = leftNeighbour.depth
-			if leftNeighbour not in explored and frontier.count(leftNeighbour) == 0 :
+			if leftNeighbour not in explored and leftNeighbour not in frontierSet :
 				frontier.append(leftNeighbour)
+				frontierSet.add(leftNeighbour)
 
 		if rightNeighbour != None:
 			if max_search_depth < rightNeighbour.depth:
 				max_search_depth = rightNeighbour.depth
-			if rightNeighbour not in explored and frontier.count(rightNeighbour) == 0 :
+			if rightNeighbour not in explored and rightNeighbour not in frontierSet :
 				frontier.append(rightNeighbour)
+				frontierSet.add(rightNeighbour)
 
 		if max_fringe_size < len(frontier):
 			max_fringe_size = len(frontier)
@@ -306,6 +322,10 @@ def performDFS(initialState,goalTest):
 			if upNeighbour not in explored and upNeighbour not in stackSet:
 				frontierStack.append(upNeighbour)
 				stackSet.add(upNeighbour)
+
+		usage = resource.getrusage(resource.RUSAGE_SELF)
+		if usage > max_ram_usage:
+			max_ram_usage = usage
 	
 		if max_fringe_size < len(frontierStack):
 			max_fringe_size = len(frontierStack)
@@ -361,7 +381,7 @@ def performAST(initialState,goalTest):
 	if usage > max_ram_usage:
 		max_ram_usage = usage
 
-	item = (getFValue(initialState), initialState)
+	item = (getF1Value(initialState), initialState)
 	frontierSet.add(initialState)
 	heapq.heappush(frontierHeap, item)
 
@@ -388,7 +408,7 @@ def performAST(initialState,goalTest):
 
 		if rightNeighbour != None:
 			if rightNeighbour not in explored and rightNeighbour not in frontierSet:
-				item = (getFValue(rightNeighbour), rightNeighbour)
+				item = (getF1Value(rightNeighbour), rightNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(rightNeighbour)
 			elif rightNeighbour in frontierSet:
@@ -396,7 +416,7 @@ def performAST(initialState,goalTest):
 				
 		if leftNeighbour != None:
 			if leftNeighbour not in explored and leftNeighbour not in frontierSet:
-				item = (getFValue(leftNeighbour), leftNeighbour)
+				item = (getF1Value(leftNeighbour), leftNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(leftNeighbour)
 			elif leftNeighbour in frontierSet:
@@ -405,7 +425,7 @@ def performAST(initialState,goalTest):
 
 		if downNeighbour != None:
 			if downNeighbour not in explored and downNeighbour not in frontierSet:
-				item = (getFValue(downNeighbour), downNeighbour)
+				item = (getF1Value(downNeighbour), downNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(downNeighbour)
 			elif downNeighbour in frontierSet:
@@ -413,13 +433,16 @@ def performAST(initialState,goalTest):
 				
 		if upNeighbour != None:
 			if upNeighbour not in explored and upNeighbour not in frontierSet:
-				item = (getFValue(upNeighbour), upNeighbour)
+				item = (getF1Value(upNeighbour), upNeighbour)
 				heapq.heappush(frontierHeap, item)
 				frontierSet.add(upNeighbour)
 			elif upNeighbour in frontierSet:
 				decreaseKey(frontierHeap, upNeighbour)
 				
-	
+		usage = resource.getrusage(resource.RUSAGE_SELF)
+		if usage > max_ram_usage:
+			max_ram_usage = usage
+
 		if max_fringe_size < len(frontierHeap):
 			max_fringe_size = len(frontierHeap)
 
@@ -458,18 +481,21 @@ def performAST(initialState,goalTest):
 		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
 		write_to_file(result_dictionary)
 
-
 def performIDA(initialState, goalTest):
 	frontierHeap = []
 	explored = Set()
 	frontierSet = Set()
 	result = False
 	result_dictionary = {}
-	nodesExpanded = 0
 	depth = 0
-	bound = getFValue(initialState)
+	bound = getF2Value(initialState)
+	global usage_ida
+	global max_ram_usage_ida
+	usage_ida = resource.getrusage(resource.RUSAGE_SELF)
+	if usage_ida > max_ram_usage_ida:
+		max_ram_usage_ida = usage_ida
 	while depth > -1 :
-		ret_tuple = performDLS(initialState, bound, nodesExpanded)
+		ret_tuple = performDLS(initialState, bound)
 		if ret_tuple[0]:
 			result = True
 			result_dictionary = ret_tuple[2]
@@ -481,13 +507,7 @@ def performIDA(initialState, goalTest):
 	else:
 		print "No answer"
 
-"""
-	Learnt from Iterative Deepening Depth First Search
-	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
-
-"""
-def performDLS(state, bound, nodesExpanded):
-
+def performDLS(state, bound):
 	frontierStack = deque()
 	stackSet = Set()
 	explored = Set()
@@ -495,13 +515,15 @@ def performDLS(state, bound, nodesExpanded):
 	result = False
 	answer = None
 	fringe_size = 0
-	max_fringe_size = 0
 	search_depth = 0
 	max_search_depth = 0
-	max_ram_usage = 0
-	usage = resource.getrusage(resource.RUSAGE_SELF)
-	if usage > max_ram_usage:
-		max_ram_usage = usage
+	global usage_ida
+	global max_ram_usage_ida
+	global nodes_expanded_ida
+	global max_fringe_size_ida
+	usage_ida = resource.getrusage(resource.RUSAGE_SELF)
+	if usage_ida > max_ram_usage_ida:
+		max_ram_usage_ida = usage_ida
 	frontierStack.append(initialState)
 	stackSet.add(initialState)
 	
@@ -523,7 +545,7 @@ def performDLS(state, bound, nodesExpanded):
 
 		min = sys.maxint
 
-		nodesExpanded = nodesExpanded + 1
+		nodes_expanded_ida += 1
 		upNeighbour = getUpNeighbour(state)
 		downNeighbour = getDownNeighbour(state)
 		leftNeighbour = getLeftNeighbour(state)
@@ -532,11 +554,11 @@ def performDLS(state, bound, nodesExpanded):
 		if rightNeighbour != None:
 			#print "\nRight"
 			#print_board(rightNeighbour)
-			cost = getFValue(rightNeighbour)
+			cost = getF2Value(rightNeighbour)
 			if rightNeighbour not in explored and rightNeighbour not in stackSet:
 				if cost <= bound:
 					#print "Append"
-					costOptimality[rightNeighbour] = getFValue(rightNeighbour)
+					costOptimality[rightNeighbour] = getF2Value(rightNeighbour)
 					frontierStack.append(rightNeighbour)
 					stackSet.add(rightNeighbour)
 				elif cost < min:
@@ -552,11 +574,11 @@ def performDLS(state, bound, nodesExpanded):
 		if leftNeighbour != None:
 			#print "\nLeft"
 			#print_board(leftNeighbour)
-			cost = getFValue(leftNeighbour)
+			cost = getF2Value(leftNeighbour)
 			if leftNeighbour not in explored and leftNeighbour not in stackSet:
 				if cost <= bound:
 					#print "Append"
-					costOptimality[leftNeighbour] = getFValue(leftNeighbour)
+					costOptimality[leftNeighbour] = getF2Value(leftNeighbour)
 					frontierStack.append(leftNeighbour)
 					stackSet.add(leftNeighbour)
 				elif cost < min:
@@ -571,11 +593,11 @@ def performDLS(state, bound, nodesExpanded):
 		if downNeighbour != None:
 			#print "\nDown"
 			#print_board(downNeighbour)
-			cost = getFValue(downNeighbour)
+			cost = getF2Value(downNeighbour)
 			if downNeighbour not in explored and downNeighbour not in stackSet:
 				if cost <= bound:
 					#print "Append"
-					costOptimality[downNeighbour] = getFValue(downNeighbour)
+					costOptimality[downNeighbour] = getF2Value(downNeighbour)
 					frontierStack.append(downNeighbour)
 					stackSet.add(downNeighbour)
 				elif cost < min:
@@ -591,11 +613,11 @@ def performDLS(state, bound, nodesExpanded):
 		if upNeighbour != None:
 			#print "\nUp"
 			#print_board(upNeighbour)
-			cost = getFValue(upNeighbour)
+			cost = getF2Value(upNeighbour)
 			if upNeighbour not in explored and upNeighbour not in stackSet:
 				if cost <= bound:
 					#print "Append"
-					costOptimality[upNeighbour] = getFValue(upNeighbour)
+					costOptimality[upNeighbour] = getF2Value(upNeighbour)
 					frontierStack.append(upNeighbour)
 					stackSet.add(upNeighbour)
 				elif cost < min:
@@ -606,9 +628,13 @@ def performDLS(state, bound, nodesExpanded):
 				explored.discard(upNeighbour)
 				stackSet.add(upNeighbour)
 				costOptimality[upNeighbour] = cost
-	
-		if max_fringe_size < len(frontierStack):
-			max_fringe_size = len(frontierStack)
+
+		usage_ida = resource.getrusage(resource.RUSAGE_SELF)
+		if usage_ida > max_ram_usage_ida:
+			max_ram_usage_ida = usage_ida
+
+		if max_fringe_size_ida < len(frontierStack):
+			max_fringe_size_ida = len(frontierStack)
 
 	if result:
 		answerStack = list()
@@ -635,14 +661,15 @@ def performDLS(state, bound, nodesExpanded):
 		result_dictionary = dict()
 		result_dictionary["path_to_goal"] = str(answerStack)
 		result_dictionary["cost_of_path"] = str(len(answerStack))
-		result_dictionary["nodes_expanded"] = str(nodesExpanded)
+		result_dictionary["nodes_expanded"] = str(nodes_expanded_ida)
 		result_dictionary["fringe_size"] = str(fringe_size)
-		result_dictionary["max_fringe_size"] = str(max_fringe_size)
+		result_dictionary["max_fringe_size"] = str(max_fringe_size_ida)
 		result_dictionary["search_depth"] = str(len(answerStack))
 		result_dictionary["max_search_depth"] = str(max_search_depth)
 		end_time = datetime.datetime.now()
 		result_dictionary["running_time"] = "%.8f" %(end_time - start_time).total_seconds()
-		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
+		result_dictionary["max_ram_usage"] = str(max_ram_usage_ida.ru_maxrss / (1024 * 1024))
+		#print result_dictionary
 		return (answer, 0, result_dictionary)
 	else:
 		return (None, min , None)
@@ -650,18 +677,22 @@ def performDLS(state, bound, nodesExpanded):
 def decreaseKey(heap, newstate):
 	for i in range(len(heap)):
 		(prio, oldstate) = heap[i]
-		if newstate == oldstate and getFValue(newstate) < getFValue(oldstate):
+		if newstate == oldstate and getF1Value(newstate) < getF1Value(oldstate):
 			heap[i] = heap[-1]
 			heap.pop()
-			item =(getFValue(newstate), newstate)
+			item =(getF1Value(newstate), newstate)
 			heapq.heappush(heap, item)
 			heapq.heapify(heap)
 
-def getFValue(state):
-	return state.depth + getHeuristic(state)
+def getF1Value(state):
+	return state.depth + getMisplacedTilesCount(state) +getManhattanDistance(state)
 
-def getHeuristic(state):
-	return getMisplacedTilesCount(state) + getManhattanDistance(state)
+def getF2Value(state):
+	return state.depth + getManhattanDistance(state)
+
+"""def getHeuristic(state):
+	return getManhattanDistance(state)
+	#return getMisplacedTilesCount(state) + getManhattanDistance(state)"""
 
 def getMisplacedTilesCount(state):
 	count = 0
