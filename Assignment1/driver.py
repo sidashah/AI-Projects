@@ -18,7 +18,21 @@ def goalTest(state):
 		value = value + 1
 	return True
 
-def print_board(state):
+def write_to_file(dictionary):
+	f = open('output.txt', 'w')
+	f.write("path_to_goal: "+dictionary['path_to_goal']+"\n")
+	f.write("cost_of_path: "+dictionary['cost_of_path']+"\n")
+	f.write("nodes_expanded: "+dictionary['nodes_expanded']+"\n")
+	f.write("fringe_size: "+dictionary['fringe_size']+"\n")
+	f.write("max_fringe_size: "+dictionary['max_fringe_size']+"\n")
+	f.write("search_depth: "+dictionary['search_depth']+"\n")
+	f.write("max_search_depth: "+dictionary['max_search_depth']+"\n")
+	f.write("running_time: "+dictionary['running_time']+"\n")
+	f.write("max_ram_usage: "+dictionary['max_ram_usage']+"\n")
+	f.close()
+
+
+"""def print_board(state):
 	length = state.dimen * state.dimen
 	for i in range(length):
 		print state.board[i]," ",
@@ -47,7 +61,7 @@ def print_board(state):
 				answerStack.append('Right')
 
 	answerStack.reverse()
-	print "operations",answerStack
+	print "operations",answerStack"""
 
 
 class State(object):
@@ -129,8 +143,6 @@ def getRightNeighbour(state):
 
 
 
-
-
 def performBFS(initialState,goalTest):
 	frontier = deque()
 	explored = Set()
@@ -169,7 +181,6 @@ def performBFS(initialState,goalTest):
 		rightNeighbour = getRightNeighbour(state)
 
 		nodesExpanded = nodesExpanded + 1
-		print nodesExpanded
 		del state
 
 		if upNeighbour != None:
@@ -224,24 +235,18 @@ def performBFS(initialState,goalTest):
 					answerStack.append('Right')
 
 		answerStack.reverse()
-		
-		print "path_to_goal:", answerStack
-		print "cost_of_path:", len(answerStack)
-		print "nodes_expanded:", nodesExpanded
-		print "fringe_size:", fringe_size
-		print "max_fringe_size:", max_fringe_size
-		print "search_depth:", len(answerStack)
-		print "max_search_depth:", max_search_depth
+		result_dictionary = dict()
+		result_dictionary["path_to_goal"] = str(answerStack)
+		result_dictionary["cost_of_path"] = str(len(answerStack))
+		result_dictionary["nodes_expanded"] = str(nodesExpanded)
+		result_dictionary["fringe_size"] = str(fringe_size)
+		result_dictionary["max_fringe_size"] = str(max_fringe_size)
+		result_dictionary["search_depth"] = str(len(answerStack))
+		result_dictionary["max_search_depth"] = str(max_search_depth)
 		end_time = datetime.datetime.now()
-		print "running_time: %.8f" %(end_time - start_time).total_seconds()
-		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
-	else:
-		print "No solution found"
-
-
-
-
-
+		result_dictionary["running_time"] = "%.8f" %(end_time - start_time).total_seconds()
+		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
+		write_to_file(result_dictionary)
 
 def performDFS(initialState,goalTest):
 	frontierStack = deque()
@@ -326,16 +331,18 @@ def performDFS(initialState,goalTest):
 					answerStack.append('Right')
 
 		answerStack.reverse()
-		print "path_to_goal:", answerStack
-		print "cost_of_path:", len(answerStack)
-		print "nodes_expanded:", nodesExpanded
-		print "fringe_size:", fringe_size
-		print "max_fringe_size:", max_fringe_size
-		print "search_depth:", len(answerStack)
-		print "max_search_depth:", max_search_depth
+		result_dictionary = dict()
+		result_dictionary["path_to_goal"] = str(answerStack)
+		result_dictionary["cost_of_path"] = str(len(answerStack))
+		result_dictionary["nodes_expanded"] = str(nodesExpanded)
+		result_dictionary["fringe_size"] = str(fringe_size)
+		result_dictionary["max_fringe_size"] = str(max_fringe_size)
+		result_dictionary["search_depth"] = str(len(answerStack))
+		result_dictionary["max_search_depth"] = str(max_search_depth)
 		end_time = datetime.datetime.now()
-		print "running_time: %.8f" %(end_time - start_time).total_seconds()
-		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
+		result_dictionary["running_time"] = "%.8f" %(end_time - start_time).total_seconds()
+		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
+		write_to_file(result_dictionary)
 
 
 def performAST(initialState,goalTest):
@@ -438,16 +445,18 @@ def performAST(initialState,goalTest):
 					answerStack.append('Right')
 
 		answerStack.reverse()
-		print "path_to_goal:", answerStack
-		print "cost_of_path:", len(answerStack)
-		print "nodes_expanded:", nodesExpanded
-		print "fringe_size:", fringe_size
-		print "max_fringe_size:", max_fringe_size
-		print "search_depth:", len(answerStack)
-		print "max_search_depth:", max_search_depth
+		result_dictionary = dict()
+		result_dictionary["path_to_goal"] = str(answerStack)
+		result_dictionary["cost_of_path"] = str(len(answerStack))
+		result_dictionary["nodes_expanded"] = str(nodesExpanded)
+		result_dictionary["fringe_size"] = str(fringe_size)
+		result_dictionary["max_fringe_size"] = str(max_fringe_size)
+		result_dictionary["search_depth"] = str(len(answerStack))
+		result_dictionary["max_search_depth"] = str(max_search_depth)
 		end_time = datetime.datetime.now()
-		print "running_time: %.8f" %(end_time - start_time).total_seconds()
-		print "max_ram_usage:", max_ram_usage.ru_maxrss / (1024 * 1024)
+		result_dictionary["running_time"] = "%.8f" %(end_time - start_time).total_seconds()
+		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
+		write_to_file(result_dictionary)
 
 
 def performIDA(initialState, goalTest):
@@ -455,53 +464,20 @@ def performIDA(initialState, goalTest):
 	explored = Set()
 	frontierSet = Set()
 	result = False
-	answer = None
-	fringe_size = 0
-	max_fringe_size = 0
+	result_dictionary = {}
 	nodesExpanded = 0
-	search_depth = 0
-	max_search_depth = 0
-	max_ram_usage = 0
-	usage = resource.getrusage(resource.RUSAGE_SELF)
-	if usage > max_ram_usage:
-		max_ram_usage = usage
-
 	depth = 0
 	bound = getFValue(initialState)
 	while depth > -1 :
-		print "Expanding open"
-		print "Bound:",bound,"<================================================================================"
-		ret_tuple = performDLS(initialState, bound)
+		ret_tuple = performDLS(initialState, bound, nodesExpanded)
 		if ret_tuple[0]:
 			result = True
-			answer = ret_tuple[0]
+			result_dictionary = ret_tuple[2]
 			break
 		bound = ret_tuple[1]
-		print "Expanding close"
 
 	if result:
-		answerStack = list()
-		print "Answer"
-		while(answer.parent != None):
-			current_row = answer.row
-			current_col = answer.col
-			answer = answer.parent
-			row_operation = current_row - answer.row
-			col_operation = current_col - answer.col
-			if(row_operation != 0):
-				if(row_operation == -1):
-					answerStack.append('Up')
-				else:
-					answerStack.append('Down')
-			else:
-				if(col_operation == -1):
-					answerStack.append('Left')
-				else:
-					answerStack.append('Right')
-
-		answerStack.reverse()
-		print "path_to_goal:", answerStack
-
+		write_to_file(result_dictionary)
 	else:
 		print "No answer"
 
@@ -510,7 +486,7 @@ def performIDA(initialState, goalTest):
 	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
 
 """
-def performDLS(state, bound):
+def performDLS(state, bound, nodesExpanded):
 
 	frontierStack = deque()
 	stackSet = Set()
@@ -520,7 +496,6 @@ def performDLS(state, bound):
 	answer = None
 	fringe_size = 0
 	max_fringe_size = 0
-	nodesExpanded = 0
 	search_depth = 0
 	max_search_depth = 0
 	max_ram_usage = 0
@@ -566,7 +541,7 @@ def performDLS(state, bound):
 					stackSet.add(rightNeighbour)
 				elif cost < min:
 					min = cost
-			elif rightNeighbour in costOptimality and cost < costOptimality[rightNeighbour]:
+			elif rightNeighbour in costOptimality and cost <= costOptimality[rightNeighbour]:
 				frontierStack.append(rightNeighbour)
 				stackSet.discard(rightNeighbour)
 				explored.discard(rightNeighbour)
@@ -586,7 +561,7 @@ def performDLS(state, bound):
 					stackSet.add(leftNeighbour)
 				elif cost < min:
 					min = cost
-			elif leftNeighbour in costOptimality and cost < costOptimality[leftNeighbour]:
+			elif leftNeighbour in costOptimality and cost <= costOptimality[leftNeighbour]:
 				frontierStack.append(leftNeighbour)
 				stackSet.discard(leftNeighbour)
 				explored.discard(leftNeighbour)
@@ -605,7 +580,7 @@ def performDLS(state, bound):
 					stackSet.add(downNeighbour)
 				elif cost < min:
 					min = cost
-			elif downNeighbour in costOptimality and cost < costOptimality[downNeighbour]:
+			elif downNeighbour in costOptimality and cost <= costOptimality[downNeighbour]:
 				frontierStack.append(downNeighbour)
 				stackSet.discard(downNeighbour)
 				explored.discard(downNeighbour)
@@ -625,7 +600,7 @@ def performDLS(state, bound):
 					stackSet.add(upNeighbour)
 				elif cost < min:
 					min = cost
-			elif upNeighbour in costOptimality and cost < costOptimality[upNeighbour]:
+			elif upNeighbour in costOptimality and cost <= costOptimality[upNeighbour]:
 				frontierStack.append(upNeighbour)
 				stackSet.discard(upNeighbour)
 				explored.discard(upNeighbour)
@@ -636,69 +611,41 @@ def performDLS(state, bound):
 			max_fringe_size = len(frontierStack)
 
 	if result:
-		print "fringe_size:", fringe_size
-		print "max_frige_size:", max_fringe_size
-		print max_search_depth
-		return (answer, 0)
-	else:
-		return (None, min)
-
-
-
-
-
-
-
-
-	print_board(state)
-	print
-	f = getFValue(state)
-	if f > bound:
-		return (None, f)
-
-	if goalTest(state):
-		return (state,-1)
-
-	min = sys.maxint
-
-	upNeighbour = getUpNeighbour(state)
-
-	if upNeighbour != None:
-		ret_tuple = performDLS(upNeighbour, bound)
-		if ret_tuple[0]:
-			return ret_tuple
-		if ret_tuple[1] < min:
-			min = ret_tuple[1]
-
-	downNeighbour = getDownNeighbour(state)
-
-	if downNeighbour != None:
-		ret_tuple = performDLS(downNeighbour, bound)
-		if ret_tuple[0]:
-			return ret_tuple
-		if ret_tuple[1] < min:
-			min = ret_tuple[1]
-
-	leftNeighbour = getLeftNeighbour(state)
-
-	if leftNeighbour != None:
-		ret_tuple = performDLS(leftNeighbour, bound)
-		if ret_tuple[0]:
-			return ret_tuple
-		if ret_tuple[1] < min:
-			min = ret_tuple[1]
-
-	rightNeighbour = getRightNeighbour(state)
-
-	if rightNeighbour != None:
-		ret_tuple = performDLS(rightNeighbour, bound)
-		if ret_tuple[0]:
-			return ret_tuple
-		if ret_tuple[1] < min:
-			min = ret_tuple[1]
+		answerStack = list()
 		
-	return (None, min)
+		while(answer.parent != None):
+			current_row = answer.row
+			current_col = answer.col
+			answer = answer.parent
+			row_operation = current_row - answer.row
+			col_operation = current_col - answer.col
+			if(row_operation != 0):
+				if(row_operation == -1):
+					answerStack.append('Up')
+				else:
+					answerStack.append('Down')
+			else:
+				if(col_operation == -1):
+					answerStack.append('Left')
+				else:
+					answerStack.append('Right')
 
+		answerStack.reverse()
+
+		result_dictionary = dict()
+		result_dictionary["path_to_goal"] = str(answerStack)
+		result_dictionary["cost_of_path"] = str(len(answerStack))
+		result_dictionary["nodes_expanded"] = str(nodesExpanded)
+		result_dictionary["fringe_size"] = str(fringe_size)
+		result_dictionary["max_fringe_size"] = str(max_fringe_size)
+		result_dictionary["search_depth"] = str(len(answerStack))
+		result_dictionary["max_search_depth"] = str(max_search_depth)
+		end_time = datetime.datetime.now()
+		result_dictionary["running_time"] = "%.8f" %(end_time - start_time).total_seconds()
+		result_dictionary["max_ram_usage"] = str(max_ram_usage.ru_maxrss / (1024 * 1024))
+		return (answer, 0, result_dictionary)
+	else:
+		return (None, min , None)
 
 def decreaseKey(heap, newstate):
 	for i in range(len(heap)):
@@ -758,13 +705,13 @@ if len(sys.argv) == 3 :
 		performDFS(initialState, goalTest)
 	elif type == "ast":
 		# Perform AST
-		print "Perform A-Star Search"
 		performAST(initialState, goalTest)
 	elif type == "ida":
 		# Perform IDA
-		print "Perform IDA-Star Search"
 		performIDA(initialState, goalTest)
 	else :
 		print "Invalid command line arguments"
 else :
 	print "Invalid number of command line arguments"
+
+
