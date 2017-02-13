@@ -26,7 +26,28 @@ def print_board(state):
 			print
 	print state.dimen
 	print state.row,",",state.col
-	#print state.operations,"\n"
+	print getFValue(state)
+	answerStack = list()
+		
+	while(state.parent != None):
+		current_row = state.row
+		current_col = state.col
+		state = state.parent
+		row_operation = current_row - state.row
+		col_operation = current_col - state.col
+		if(row_operation != 0):
+			if(row_operation == -1):
+				answerStack.append('Up')
+			else:
+				answerStack.append('Down')
+		else:
+			if(col_operation == -1):
+				answerStack.append('Left')
+			else:
+				answerStack.append('Right')
+
+	answerStack.reverse()
+	print "operations",answerStack
 
 
 class State(object):
@@ -446,15 +467,17 @@ def performIDA(initialState, goalTest):
 		max_ram_usage = usage
 
 	depth = 0
-	bound = getHeuristic(initialState)
+	bound = getFValue(initialState)
 	while depth > -1 :
-		ret_tuple = performDLS(initialState, depth, bound)
+		print "Expanding open"
+		print "Bound:",bound,"<================================================================================"
+		ret_tuple = performDLS(initialState, bound)
 		if ret_tuple[0]:
 			result = True
 			answer = ret_tuple[0]
 			break
-		print depth
 		bound = ret_tuple[1]
+		print "Expanding close"
 
 	if result:
 		answerStack = list()
@@ -487,12 +510,152 @@ def performIDA(initialState, goalTest):
 	https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search
 
 """
-def performDLS(state, depth, bound):
-	f = depth + getHeuristic(state)
+def performDLS(state, bound):
+
+	frontierStack = deque()
+	stackSet = Set()
+	explored = Set()
+	costOptimality = dict()
+	result = False
+	answer = None
+	fringe_size = 0
+	max_fringe_size = 0
+	nodesExpanded = 0
+	search_depth = 0
+	max_search_depth = 0
+	max_ram_usage = 0
+	usage = resource.getrusage(resource.RUSAGE_SELF)
+	if usage > max_ram_usage:
+		max_ram_usage = usage
+	frontierStack.append(initialState)
+	stackSet.add(initialState)
+	
+	while len(frontierStack) != 0 :
+		state = frontierStack.pop()
+		#print "\nNode to be expanded:"
+		#print_board(state)
+		stackSet.discard(state)
+		explored.add(state)
+		if max_search_depth < state.depth:
+				max_search_depth = state.depth
+		
+
+		if(goalTest(state)):
+			result = True
+			answer = state
+			fringe_size = len(frontierStack)
+			break
+
+		min = sys.maxint
+
+		nodesExpanded = nodesExpanded + 1
+		upNeighbour = getUpNeighbour(state)
+		downNeighbour = getDownNeighbour(state)
+		leftNeighbour = getLeftNeighbour(state)
+		rightNeighbour = getRightNeighbour(state)
+
+		if rightNeighbour != None:
+			#print "\nRight"
+			#print_board(rightNeighbour)
+			cost = getFValue(rightNeighbour)
+			if rightNeighbour not in explored and rightNeighbour not in stackSet:
+				if cost <= bound:
+					#print "Append"
+					costOptimality[rightNeighbour] = getFValue(rightNeighbour)
+					frontierStack.append(rightNeighbour)
+					stackSet.add(rightNeighbour)
+				elif cost < min:
+					min = cost
+			elif rightNeighbour in costOptimality and cost < costOptimality[rightNeighbour]:
+				frontierStack.append(rightNeighbour)
+				stackSet.discard(rightNeighbour)
+				explored.discard(rightNeighbour)
+				stackSet.add(rightNeighbour)
+				costOptimality[rightNeighbour] = cost
+				
+
+		if leftNeighbour != None:
+			#print "\nLeft"
+			#print_board(leftNeighbour)
+			cost = getFValue(leftNeighbour)
+			if leftNeighbour not in explored and leftNeighbour not in stackSet:
+				if cost <= bound:
+					#print "Append"
+					costOptimality[leftNeighbour] = getFValue(leftNeighbour)
+					frontierStack.append(leftNeighbour)
+					stackSet.add(leftNeighbour)
+				elif cost < min:
+					min = cost
+			elif leftNeighbour in costOptimality and cost < costOptimality[leftNeighbour]:
+				frontierStack.append(leftNeighbour)
+				stackSet.discard(leftNeighbour)
+				explored.discard(leftNeighbour)
+				stackSet.add(leftNeighbour)
+				costOptimality[leftNeighbour] = cost
+
+		if downNeighbour != None:
+			#print "\nDown"
+			#print_board(downNeighbour)
+			cost = getFValue(downNeighbour)
+			if downNeighbour not in explored and downNeighbour not in stackSet:
+				if cost <= bound:
+					#print "Append"
+					costOptimality[downNeighbour] = getFValue(downNeighbour)
+					frontierStack.append(downNeighbour)
+					stackSet.add(downNeighbour)
+				elif cost < min:
+					min = cost
+			elif downNeighbour in costOptimality and cost < costOptimality[downNeighbour]:
+				frontierStack.append(downNeighbour)
+				stackSet.discard(downNeighbour)
+				explored.discard(downNeighbour)
+				stackSet.add(downNeighbour)
+				costOptimality[downNeighbour] = cost
+
+
+		if upNeighbour != None:
+			#print "\nUp"
+			#print_board(upNeighbour)
+			cost = getFValue(upNeighbour)
+			if upNeighbour not in explored and upNeighbour not in stackSet:
+				if cost <= bound:
+					#print "Append"
+					costOptimality[upNeighbour] = getFValue(upNeighbour)
+					frontierStack.append(upNeighbour)
+					stackSet.add(upNeighbour)
+				elif cost < min:
+					min = cost
+			elif upNeighbour in costOptimality and cost < costOptimality[upNeighbour]:
+				frontierStack.append(upNeighbour)
+				stackSet.discard(upNeighbour)
+				explored.discard(upNeighbour)
+				stackSet.add(upNeighbour)
+				costOptimality[upNeighbour] = cost
+	
+		if max_fringe_size < len(frontierStack):
+			max_fringe_size = len(frontierStack)
+
+	if result:
+		print "fringe_size:", fringe_size
+		print "max_frige_size:", max_fringe_size
+		print max_search_depth
+		return (answer, 0)
+	else:
+		return (None, min)
+
+
+
+
+
+
+
+
+	print_board(state)
+	print
+	f = getFValue(state)
 	if f > bound:
 		return (None, f)
 
-	print_board(state)
 	if goalTest(state):
 		return (state,-1)
 
@@ -501,7 +664,7 @@ def performDLS(state, depth, bound):
 	upNeighbour = getUpNeighbour(state)
 
 	if upNeighbour != None:
-		ret_tuple = performDLS(upNeighbour, depth+1, bound)
+		ret_tuple = performDLS(upNeighbour, bound)
 		if ret_tuple[0]:
 			return ret_tuple
 		if ret_tuple[1] < min:
@@ -510,7 +673,7 @@ def performDLS(state, depth, bound):
 	downNeighbour = getDownNeighbour(state)
 
 	if downNeighbour != None:
-		ret_tuple = performDLS(downNeighbour, depth+1, bound)
+		ret_tuple = performDLS(downNeighbour, bound)
 		if ret_tuple[0]:
 			return ret_tuple
 		if ret_tuple[1] < min:
@@ -519,7 +682,7 @@ def performDLS(state, depth, bound):
 	leftNeighbour = getLeftNeighbour(state)
 
 	if leftNeighbour != None:
-		ret_tuple = performDLS(leftNeighbour, depth+1, bound)
+		ret_tuple = performDLS(leftNeighbour, bound)
 		if ret_tuple[0]:
 			return ret_tuple
 		if ret_tuple[1] < min:
@@ -528,7 +691,7 @@ def performDLS(state, depth, bound):
 	rightNeighbour = getRightNeighbour(state)
 
 	if rightNeighbour != None:
-		ret_tuple = performDLS(rightNeighbour, depth+1, bound)
+		ret_tuple = performDLS(rightNeighbour, bound)
 		if ret_tuple[0]:
 			return ret_tuple
 		if ret_tuple[1] < min:
