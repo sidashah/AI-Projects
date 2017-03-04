@@ -8,8 +8,7 @@ import operator
 
 directionVectors = (UP_VEC, DOWN_VEC, LEFT_VEC, RIGHT_VEC) = ((-1, 0), (1, 0), (0, -1), (0, 1))
 move ={0:"Up", 1:"Down", 2:"Left", 3:"Right"}
-min_microseconds = 10
-current_turn = PLAYER # 0 = Opponent 1 = Player
+min_microseconds = 40000
 PLAYER = 1
 OPPONENT = 0
 
@@ -26,84 +25,106 @@ class PlayerAI (BaseAI):
 
 	def performIterativeDepthSearch(self,starttime, grid):
 		best_move = None
+		depth = 0
 		while (datetime.datetime.now() - starttime).microseconds < min_microseconds:
-			new_best_move = self.search(grid, depth, -maxint-1, maxint, 0, 0, PLAYER)
-			print new_best_move
-			if new_best_move is not None:
+			#print "Searching"
+			new_best_move = self.search(grid, depth, -maxint-1, maxint, PLAYER)
+			if new_best_move["move"] is not None:
+				print "Best==============>                                     ",move[new_best_move["move"]]
 				best_move = new_best_move
 			else:
 				break
 			depth += 1
-		return best_move
+		if best_move is not None:
+			return best_move["move"]
+		else:
+			return None
 
 
 	def search(self, grid ,depth, alpha, beta, turn):
 		best_move = None
 		best_score = 0
 		result = None
+		#print "\n\n\n\n"
+		#print "Depth",depth
+		"""if turn == PLAYER:
+			print "Player"
+		else:
+			print "Opponent"""
 
 		if turn == PLAYER:
 			#do this
 			best_player_move = None
 			best_score = alpha
-			for valid_move in grid.getAvailableMoves():
+			valid_moves = grid.getAvailableMoves()
+			for valid_move in valid_moves:
+				#print move[valid_move]
 				new_grid = grid.clone()
-        		new_grid.move(valid_move)
+				new_grid.move(valid_move)
+				if depth == 0:
+					result = {"move":valid_move, "score":self.eval(new_grid)}
+				else :
+					result = self.search(new_grid, depth-1, best_score, beta, OPPONENT)
 
-        		if depth == 0:
-        			result = ("move":valid_move, "score":self.eval(new_grid))
-        		else :
-	        		result = self.search(self, new_grid, depth-1, best_score, beta, OPPONENT)
+				#print ""
+				#print "Result:",result
+				#print "Best",best_score
 
-        		if result["score"] > bestScore:
-        			best_score = result["score"]
-        			best_move = valid_move
+				if result["score"] > best_score:
+					best_score = result["score"]
+					best_move = valid_move
 
-        		if best_score >= beta:
-        			return ("move":best_move, "score":best_score)
+				#print "Best now",best_score
+				#print "Beta",beta
+
+				if best_score >= beta:
+					return {"move":best_move, "score":best_score}
 
 		elif turn == OPPONENT:
 			#do this
 			best_score = beta
-			valid_tile_pos =  grid.getAvailableCells():
+			valid_tile_pos =  grid.getAvailableCells()
 			scores = {2:[],4:[]}
 			best_locval = []
 			for value in scores:
-				for tile_pos in valid_tile_pos:
+				for i in range(0,len(valid_tile_pos)):
+					scores[value].append(0)
+					tile_pos = valid_tile_pos[i]
 					grid.setCellValue(tile_pos, value)
-					scores[value][tile_pos] = -self.smoothness(grid)
+					scores[value][i] = -self.smoothness(grid)
 					grid.setCellValue(tile_pos, 0)
 
-			max_score = max([i for i in scores[2].values()])
-			max_score = max(max_score, [i for i in scores[4].values()])
-			for key in scores[2].keys():
-				if scores[2][key] == max_score:
-					# add in candidate
-					best_locval.add(("position":key, "value":2))
-
-			for key in scores[4].keys():
-				if scores[4][key] == max_score:
-					# add in candidate
-					best_locval.add(("position":key, "value":4))
-
+			
+			max_score = max(scores[2] + scores[4])
+			#print "Bad", max_score
+			
+			for j in range(0,len(scores[2])):
+				if scores[2][j] == max_score:
+					best_locval.append({"position":valid_tile_pos[j], "value":2})
+			
+			for j in range(0,len(scores[4])):
+				if scores[4][j] == max_score:
+					best_locval.append({"position":valid_tile_pos[j], "value":4})
+			
 			for placement in best_locval:
-				position = best_locval["position"]
-				value = best_locval["value"]
+				position = placement["position"]
+				value = placement["value"]
 				new_grid = grid.clone()
 				new_grid.setCellValue(position,value)
+				#print "Place",position,"Val",value
 				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
 
 				if result["score"] < best_score:
 					best_score = result["score"]
 
 				if alpha >= best_score:
-					return ("move":None, score:alpha)
+					return {"move":None, "score":alpha}
 		
-		return ("move":best_move, "score":best_score)
+		return {"move":best_move, "score":best_score}
 
 	def eval(self, grid):
-		mono_weight = 1
-		empty_weight = 5
+		mono_weight = 1.5
+		empty_weight = 2
 		smooth_weight = 0.1
 		max_weight = 1
 		#print "Mono1:", (self.monotonicity(grid) * mono_weight),
@@ -117,7 +138,6 @@ class PlayerAI (BaseAI):
 		(self.smoothness(grid) * smooth_weight) +\
 		(grid.getMaxTile() * max_weight)
 
-		print "Eval:", totaleval
 
 		return totaleval
 
