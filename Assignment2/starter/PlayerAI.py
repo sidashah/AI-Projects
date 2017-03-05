@@ -8,7 +8,7 @@ import operator
 
 directionVectors = (UP_VEC, DOWN_VEC, LEFT_VEC, RIGHT_VEC) = ((-1, 0), (1, 0), (0, -1), (0, 1))
 move ={0:"Up", 1:"Down", 2:"Left", 3:"Right"}
-min_microseconds = 40000
+min_microseconds = 35000
 PLAYER = 1
 OPPONENT = 0
 
@@ -20,6 +20,8 @@ class PlayerAI (BaseAI):
 
 		starttime = datetime.datetime.now()
 		move = self.performIterativeDepthSearch(starttime, grid)
+		endtime = datetime.datetime.now()
+		#!!print (endtime - starttime).microseconds / 1000
 		return move
 		#return moves[randint(0, len(moves) - 1)]
 
@@ -30,7 +32,7 @@ class PlayerAI (BaseAI):
 			#print "Searching"
 			new_best_move = self.search(grid, depth, -maxint-1, maxint, PLAYER)
 			if new_best_move["move"] is not None:
-				print "Best==============>                                     ",move[new_best_move["move"]]
+				#!!print "Best==============>                                     ",move[new_best_move["move"]]
 				best_move = new_best_move
 			else:
 				break
@@ -46,11 +48,12 @@ class PlayerAI (BaseAI):
 		best_score = 0
 		result = None
 		#print "\n\n\n\n"
-		#print "Depth",depth
-		"""if turn == PLAYER:
-			print "Player"
-		else:
-			print "Opponent"""
+		#!!print grid.map
+		#!!print "Depth",depth
+		#!!if turn == PLAYER:
+			#!!print "Player,alpha:",alpha,"beta:",beta
+		#!!else:
+			#!!print "Opponent,alpha:",alpha,"beta:",beta
 
 		if turn == PLAYER:
 			#do this
@@ -64,10 +67,14 @@ class PlayerAI (BaseAI):
 				if depth == 0:
 					result = {"move":valid_move, "score":self.eval(new_grid)}
 				else :
+					#!!print "\tCurrent:",move[valid_move]
 					result = self.search(new_grid, depth-1, best_score, beta, OPPONENT)
 
 				#print ""
-				#print "Result:",result
+				#!!if result["move"] is not None:
+					#!!print "\tResult:",move[result["move"]],", score:",result["score"]
+				#!!else:
+					#!!print "\tNo move"
 				#print "Best",best_score
 
 				if result["score"] > best_score:
@@ -78,6 +85,8 @@ class PlayerAI (BaseAI):
 				#print "Beta",beta
 
 				if best_score >= beta:
+					#!!print "Player Pruning"
+					#!!print "Return",move[best_move]
 					return {"move":best_move, "score":best_score}
 
 		elif turn == OPPONENT:
@@ -91,12 +100,11 @@ class PlayerAI (BaseAI):
 					scores[value].append(0)
 					tile_pos = valid_tile_pos[i]
 					grid.setCellValue(tile_pos, value)
-					scores[value][i] = -self.smoothness(grid)
+					scores[value][i] = -self.smoothness(grid) + self.islands(grid)
 					grid.setCellValue(tile_pos, 0)
 
 			
 			max_score = max(scores[2] + scores[4])
-			#print "Bad", max_score
 			
 			for j in range(0,len(scores[2])):
 				if scores[2][j] == max_score:
@@ -110,28 +118,34 @@ class PlayerAI (BaseAI):
 				position = placement["position"]
 				value = placement["value"]
 				new_grid = grid.clone()
-				new_grid.setCellValue(position,value)
-				#print "Place",position,"Val",value
+				new_grid.setCellValue(position, value)
+				#!!print "Place",position,"Val",value
 				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
+				new_grid.setCellValue(position, 0)
 
 				if result["score"] < best_score:
 					best_score = result["score"]
 
 				if alpha >= best_score:
+					#!!print "Oppo Pruning"
 					return {"move":None, "score":alpha}
 		
+		#!!if best_move is not None:
+			#!!print "Returning:",move[best_move],"score:",best_score
+		#!!else:
+			#!!print "Returning None, score:",best_score
 		return {"move":best_move, "score":best_score}
 
 	def eval(self, grid):
-		mono_weight = 1.5
-		empty_weight = 2
+		mono_weight = 1
+		empty_weight = 2.7
 		smooth_weight = 0.1
 		max_weight = 1
 		#print "Mono1:", (self.monotonicity(grid) * mono_weight),
-		#print "Mono2:", (self.monotonicity2(grid) * mono_weight),
-		#print "Empty:", (log(len(grid.getAvailableCells())) * empty_weight),
-		#print "Smooth:", (self.smoothness(grid) * smooth_weight),
-		#print "Max:", (grid.getMaxTile() * max_weight)
+		#!!print "\t\tMono2:", (self.monotonicity2(grid) * mono_weight),
+		#!!print "Empty:", (log(len(grid.getAvailableCells())) * empty_weight),
+		#!!print "Smooth:", (self.smoothness(grid) * smooth_weight),
+		#!!print "Max:", (grid.getMaxTile() * max_weight)
 		
 		totaleval = (self.monotonicity2(grid) * mono_weight) +\
 		(log(len(grid.getAvailableCells())) * empty_weight) +\
@@ -222,7 +236,7 @@ class PlayerAI (BaseAI):
 					next_value = log(next_value, 2)
 				
 				if current_value > next_value :
-					total[0] += next_value + current_value
+					total[0] += next_value - current_value
 				elif next_value > current_value :
 					total[1] += current_value - next_value
 				current = next
@@ -246,7 +260,7 @@ class PlayerAI (BaseAI):
 					next_value = log(next_value, 2)
 				
 				if current_value > next_value :
-					total[2] += next_value + current_value
+					total[2] += next_value - current_value
 				elif next_value > current_value :
 					total[3] += current_value - next_value
 				current = next
@@ -284,7 +298,17 @@ class PlayerAI (BaseAI):
 
 	def islands(self, grid):
 		islands = 0
-		mark = list(list[4])
+
+		def markCells(x, y, cell_value):
+			cur_posXY = (x,y)
+			if not grid.crossBound(cur_posXY) and not mark[x][y] :
+				cur_cell_value = grid.getCellValue(cur_posXY)
+			 	if cur_cell_value and cur_cell_value == cell_value :
+			 		mark[x][y] = True
+			 		for dir_vector in directionVectors:
+			 			markCells(x + dir_vector[0], y + dir_vector[1], cell_value)
+
+		mark = [[None]*4]*4
 		for x in range(0,4):
 			for y in range(0,4):
 				if grid.getCellValue((x, y)):
@@ -292,10 +316,11 @@ class PlayerAI (BaseAI):
 
 		for x in range(0,4):
 			for y in range(0,4):
-				if grid.getCellValue((x, y)) and not mark[x][y]:
+				posXY = (x,y)
+				val = grid.getCellValue(posXY)
+				if val and not mark[x][y]:
 					islands += 1
-					# routine for mark
-
+					markCells(x, y, val)
 
 		return islands
 
