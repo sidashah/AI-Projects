@@ -2,51 +2,59 @@ from random import randint
 from BaseAI import BaseAI
 from math import log, fabs
 from collections import deque
-import datetime
+import time
 from sys import maxint
 import operator
 
 directionVectors = (UP_VEC, DOWN_VEC, LEFT_VEC, RIGHT_VEC) = ((-1, 0), (1, 0), (0, -1), (0, 1))
 move ={0:"Up", 1:"Down", 2:"Left", 3:"Right"}
-min_microseconds = 35000
+timelimit = 0.19
 PLAYER = 1
 OPPONENT = 0
+starttime = None
+timeout = False
 
 class PlayerAI (BaseAI):
 
 	def getMove(self, grid):
-		# global current_turn
 		current_turn = PLAYER
-
-		starttime = datetime.datetime.now()
-		move = self.performIterativeDepthSearch(starttime, grid)
-		endtime = datetime.datetime.now()
-		#!!print (endtime - starttime).microseconds / 1000
+		move = self.performIterativeDepthSearch(grid)
+		endtime = time.clock()
+		print (endtime - starttime)
 		return move
-		#return moves[randint(0, len(moves) - 1)]
 
-	def performIterativeDepthSearch(self,starttime, grid):
-		best_move = None
+	def performIterativeDepthSearch(self, grid):
+		global starttime
+		global timeout
+		starttime = time.clock()
+		timeout = False
+		best_move = {"move":None, "score":-maxint-1}
 		depth = 0
-		while (datetime.datetime.now() - starttime).microseconds < min_microseconds:
+		while not timeout:
 			#print "Searching"
 			new_best_move = self.search(grid, depth, -maxint-1, maxint, PLAYER)
-			if new_best_move["move"] is not None:
+			#if timeout:
+				#print "Timeout"
+				#if best_move["score"] < new_best_move["score"]:
+					#print "#############################################################"
+			if new_best_move["move"] is not None and new_best_move["score"] > best_move["score"]:
 				#!!print "Best==============>                                     ",move[new_best_move["move"]]
+				#print "Update",new_best_move["score"]
 				best_move = new_best_move
-			else:
-				break
 			depth += 1
-		if best_move is not None:
+			#print depth
+		if best_move["move"] is not None:
 			return best_move["move"]
 		else:
-			return None
+			return moves[randint(0, len(moves) - 1)]
 
 
 	def search(self, grid ,depth, alpha, beta, turn):
+		global timeout
 		best_move = None
 		best_score = 0
 		result = None
+
 		#print "\n\n\n\n"
 		#!!print grid.map
 		#!!print "Depth",depth
@@ -56,9 +64,13 @@ class PlayerAI (BaseAI):
 			#!!print "Opponent,alpha:",alpha,"beta:",beta
 
 		if turn == PLAYER:
-			#do this
 			best_player_move = None
 			best_score = alpha
+
+			if timeout:
+				#print "Play",self.eval(grid)
+				return {"move":None, "score":self.eval(grid)}
+
 			valid_moves = grid.getAvailableMoves()
 			for valid_move in valid_moves:
 				#print move[valid_move]
@@ -67,7 +79,7 @@ class PlayerAI (BaseAI):
 				if depth == 0:
 					result = {"move":valid_move, "score":self.eval(new_grid)}
 				else :
-					#!!print "\tCurrent:",move[valid_move]
+					#print "\tCurrent:",move[valid_move]
 					result = self.search(new_grid, depth-1, best_score, beta, OPPONENT)
 
 				#print ""
@@ -92,6 +104,15 @@ class PlayerAI (BaseAI):
 		elif turn == OPPONENT:
 			#do this
 			best_score = beta
+
+			if timeout:
+				#print "Opp ret",self.eval(grid)
+				return {"move": None, "score":self.eval(grid)}
+			elif (time.clock() - starttime) > timelimit:
+				timeout = True
+				#print "Opp ret",self.eval(grid)
+				return {"move":None, "score":self.eval(grid)}
+
 			valid_tile_pos =  grid.getAvailableCells()
 			scores = {2:[],4:[]}
 			best_locval = []
@@ -138,19 +159,25 @@ class PlayerAI (BaseAI):
 
 	def eval(self, grid):
 		mono_weight = 1
-		empty_weight = 2.7
+		empty_weight = 4
 		smooth_weight = 0.1
-		max_weight = 1
-		#print "Mono1:", (self.monotonicity(grid) * mono_weight),
-		#!!print "\t\tMono2:", (self.monotonicity2(grid) * mono_weight),
-		#!!print "Empty:", (log(len(grid.getAvailableCells())) * empty_weight),
-		#!!print "Smooth:", (self.smoothness(grid) * smooth_weight),
-		#!!print "Max:", (grid.getMaxTile() * max_weight)
+		max_weight = 3
+		emptyTilesHeuristics = 0
+
+		emptyTiles = len(grid.getAvailableCells())
+		if emptyTiles != 0:
+			emptyTilesHeuristics = log(emptyTiles, 2) * empty_weight
 		
-		totaleval = (self.monotonicity2(grid) * mono_weight) +\
-		(log(len(grid.getAvailableCells())) * empty_weight) +\
+		"""print "\t\tMono:", (self.monotonicity(grid) * mono_weight),
+		print "Empty:", (log(len(grid.getAvailableCells())) * empty_weight),
+		print "Smooth:", (self.smoothness(grid) * smooth_weight),
+		print "Max:", (grid.getMaxTile() * max_weight)"""
+		#print self.monotonicity(grid),",",len(grid.getAvailableCells()),",",self.smoothness(grid),",",grid.getMaxTile()
+		
+		totaleval = (self.monotonicity(grid) * mono_weight) +\
+		emptyTilesHeuristics +\
 		(self.smoothness(grid) * smooth_weight) +\
-		(grid.getMaxTile() * max_weight)
+		(log(grid.getMaxTile(), 2) * max_weight)
 
 
 		return totaleval
@@ -169,52 +196,7 @@ class PlayerAI (BaseAI):
 
 		return ((max_x, max_y), maxTile)
 
-
 	def monotonicity(self, grid):
-		marked = [ [False] * 4 ] * 4
-		queued = [ [False] * 4 ] * 4		
-		highest_cell, highest_value = self.getMaxTile(grid)
-
-		increases = 0
-		cell_queue = deque([highest_cell])
-		queued[highest_cell[0]][highest_cell[1]] = True
-		markList = deque([])
-		markAfter = 1
-
-		while(len(cell_queue) > 0) :
-			markAfter -= 1
-			cell_pos= cell_queue.popleft()
-
-			# dont know if we need to do this or not
-			markList.append(cell_pos);
-			value = grid.getCellValue(cell_pos)
-			if value:
-				value = log(value, 2) 
-			else :
-				value = 0
-
-			for direction in [0,1,2,3] :
-				dir_vector = directionVectors[direction]
-				next_cell_pos  = (cell_pos[0] + dir_vector[0], cell_pos[1] + dir_vector[1])
-				if not grid.crossBound(next_cell_pos) and not marked[next_cell_pos[0]][next_cell_pos[1]] :
-					next_value = grid.getCellValue(next_cell_pos)
-					if next_value:
-						next_value = log(next_value, 2)
-						if next_value > value:
-							increases += next_value - value
-					if not queued[next_cell_pos[0]][next_cell_pos[1]]:
-						cell_queue.append(next_cell_pos)
-						queued[next_cell_pos[0]][next_cell_pos[1]] =True
-
-			if markAfter == 0:
-				while len(markList) > 0 :
-					cell_pos = markList.popleft()
-					marked[cell_pos[0]][cell_pos[1]] = True
-				markAfter = len(cell_queue)
-
-		return -increases
-
-	def monotonicity2(self, grid):
 
 		total = [0] * 4;
 
@@ -222,8 +204,9 @@ class PlayerAI (BaseAI):
 			current = 0
 			next = current + 1
 			while next < 4 :
-				value = grid.getCellValue((x, next))
-				while next < 4 and not value:
+				while next < 4 and not grid.getCellValue((x, next)):
+				#value = grid.getCellValue((x, next))
+				#while next < 4 and not value:
 					next += 1
 				if next >= 4:
 					next -= 1
@@ -246,8 +229,9 @@ class PlayerAI (BaseAI):
 			current = 0
 			next = current + 1
 			while next < 4 :
-				value = grid.getCellValue((next, y))
-				while next < 4 and not value:
+				#value = grid.getCellValue((next, y))
+				#while next < 4 and not value:
+				while next < 4 and not grid.getCellValue((next, y)):
 					next += 1
 				if next >= 4:
 					next -= 1
