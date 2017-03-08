@@ -17,10 +17,13 @@ timeout = False
 class PlayerAI (BaseAI):
 
 	def getMove(self, grid):
-		current_turn = PLAYER
+		"""
+			Gets best move using Iterative Deepening Search
+			and alpha-beta pruning
+		"""
 		move = self.performIterativeDepthSearch(grid)
 		endtime = time.clock()
-		print (endtime - starttime)
+		#print (endtime - starttime)
 		return move
 
 	def performIterativeDepthSearch(self, grid):
@@ -31,18 +34,15 @@ class PlayerAI (BaseAI):
 		best_move = {"move":None, "score":-maxint-1}
 		depth = 0
 		while not timeout:
-			#print "Searching"
 			new_best_move = self.search(grid, depth, -maxint-1, maxint, PLAYER)
-			#if timeout:
-				#print "Timeout"
-				#if best_move["score"] < new_best_move["score"]:
-					#print "#############################################################"
+
+			#Update best move if the score is better than the previous best score
 			if new_best_move["move"] is not None and new_best_move["score"] > best_move["score"]:
-				#!!print "Best==============>                                     ",move[new_best_move["move"]]
-				#print "Update",new_best_move["score"]
 				best_move = new_best_move
+
 			depth += 1
-			#print depth
+			print depth
+		#end of while loop, return best move if not None or random move
 		if best_move["move"] is not None:
 			return best_move["move"]
 		else:
@@ -50,81 +50,65 @@ class PlayerAI (BaseAI):
 
 
 	def search(self, grid ,depth, alpha, beta, turn):
+		"""
+			Search for move
+		"""
 		global timeout
 		best_move = None
 		best_score = 0
 		result = None
-
-		#print "\n\n\n\n"
-		#!!print grid.map
-		#!!print "Depth",depth
-		#!!if turn == PLAYER:
-			#!!print "Player,alpha:",alpha,"beta:",beta
-		#!!else:
-			#!!print "Opponent,alpha:",alpha,"beta:",beta
 
 		if turn == PLAYER:
 			best_player_move = None
 			best_score = alpha
 
 			if timeout:
-				#print "Play",self.eval(grid)
 				return {"move":None, "score":self.eval(grid)}
 
 			valid_moves = grid.getAvailableMoves()
 			for valid_move in valid_moves:
-				#print move[valid_move]
 				new_grid = grid.clone()
 				new_grid.move(valid_move)
+				
 				if depth == 0:
 					result = {"move":valid_move, "score":self.eval(new_grid)}
 				else :
-					#print "\tCurrent:",move[valid_move]
 					result = self.search(new_grid, depth-1, best_score, beta, OPPONENT)
-
-				#print ""
-				#!!if result["move"] is not None:
-					#!!print "\tResult:",move[result["move"]],", score:",result["score"]
-				#!!else:
-					#!!print "\tNo move"
-				#print "Best",best_score
 
 				if result["score"] > best_score:
 					best_score = result["score"]
 					best_move = valid_move
 
-				#print "Best now",best_score
-				#print "Beta",beta
-
 				if best_score >= beta:
-					#!!print "Player Pruning"
-					#!!print "Return",move[best_move]
 					return {"move":best_move, "score":best_score}
 
 		elif turn == OPPONENT:
-			#do this
 			best_score = beta
 
 			if timeout:
-				#print "Opp ret",self.eval(grid)
 				return {"move": None, "score":self.eval(grid)}
 			elif (time.clock() - starttime) > timelimit:
 				timeout = True
-				#print "Opp ret",self.eval(grid)
 				return {"move":None, "score":self.eval(grid)}
 
+			"""
+				find best placement of new tiles that
+				can disturb the player and make the evaluations to mins
+				Thus, we are seeing limited branches of min, that would
+				get most minimum evaluations for min
+			"""
 			valid_tile_pos =  grid.getAvailableCells()
-			scores = {2:[],4:[]}
+			"""scores = {2:[],4:[]}
 			best_locval = []
+
 			for value in scores:
 				for i in range(0,len(valid_tile_pos)):
 					scores[value].append(0)
 					tile_pos = valid_tile_pos[i]
 					grid.setCellValue(tile_pos, value)
-					scores[value][i] = -self.smoothness(grid) + self.islands(grid)
+					scores[value][i] = -self.smoothness(grid) + self.isolated_cells(grid)
 					grid.setCellValue(tile_pos, 0)
 
-			
 			max_score = max(scores[2] + scores[4])
 			
 			for j in range(0,len(scores[2])):
@@ -137,10 +121,12 @@ class PlayerAI (BaseAI):
 			
 			for placement in best_locval:
 				position = placement["position"]
-				value = placement["value"]
+				value = placement["value"]"""
+			for tile_pos in valid_tile_pos:
+				value = 2
+				position = tile_pos
 				new_grid = grid.clone()
 				new_grid.setCellValue(position, value)
-				#!!print "Place",position,"Val",value
 				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
 				new_grid.setCellValue(position, 0)
 
@@ -148,13 +134,21 @@ class PlayerAI (BaseAI):
 					best_score = result["score"]
 
 				if alpha >= best_score:
-					#!!print "Oppo Pruning"
+					return {"move":None, "score":alpha}
+
+				value = 4
+				position = tile_pos
+				new_grid = grid.clone()
+				new_grid.setCellValue(position, value)
+				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
+				new_grid.setCellValue(position, 0)
+
+				if result["score"] < best_score:
+					best_score = result["score"]
+
+				if alpha >= best_score:
 					return {"move":None, "score":alpha}
 		
-		#!!if best_move is not None:
-			#!!print "Returning:",move[best_move],"score:",best_score
-		#!!else:
-			#!!print "Returning None, score:",best_score
 		return {"move":best_move, "score":best_score}
 
 	def eval(self, grid):
@@ -162,28 +156,28 @@ class PlayerAI (BaseAI):
 		empty_weight = 4
 		smooth_weight = 0.1
 		max_weight = 3
-		emptyTilesHeuristics = 0
-
+		
+		emptytiles_heuristics = 0
+		
 		emptyTiles = len(grid.getAvailableCells())
 		if emptyTiles != 0:
 			emptyTilesHeuristics = log(emptyTiles, 2) * empty_weight
 		
-		"""print "\t\tMono:", (self.monotonicity(grid) * mono_weight),
-		print "Empty:", (log(len(grid.getAvailableCells())) * empty_weight),
-		print "Smooth:", (self.smoothness(grid) * smooth_weight),
-		print "Max:", (grid.getMaxTile() * max_weight)"""
-		#print self.monotonicity(grid),",",len(grid.getAvailableCells()),",",self.smoothness(grid),",",grid.getMaxTile()
-		
 		totaleval = (self.monotonicity(grid) * mono_weight) +\
-		emptyTilesHeuristics +\
+		emptytiles_heuristics +\
 		(self.smoothness(grid) * smooth_weight) +\
 		(log(grid.getMaxTile(), 2) * max_weight)
-
-
+		
 		return totaleval
 
+	"""def isCornerMax(self, grid):
+		(x,y),tile_value = self.getCustomMaxTile(grid)
+		if (x,y) == (0,0) or (x,y) == (0,3) or (x,y) == (3,0) or (x,y) == (3,3):
+			return tile_value
+		else:
+			return 0
 
-	def getMaxTile(self, grid):
+	def getCustomMaxTile(self, grid):
 		maxTile = 0
 		max_x = 0
 		max_y = 0
@@ -194,20 +188,26 @@ class PlayerAI (BaseAI):
 					max_x = x
 					max_y = y
 
-		return ((max_x, max_y), maxTile)
+		return ((max_x, max_y), maxTile)"""
 
 	def monotonicity(self, grid):
-
+		"""
+			Finds difference between neighbouring tiles
+			If tiles are in pure increasing order or decreasing order in vertical direction
+				total[0] or total[1] would be 0 and picked by max
+			If tiles are in pure increasing order or decreasing order in horizontal direction
+				total[3] or total[4] would be 0 and picked by max
+		"""
 		total = [0] * 4;
 
 		for x in range(0,4):
 			current = 0
 			next = current + 1
 			while next < 4 :
+				"""move to next non zero value"""
 				while next < 4 and not grid.getCellValue((x, next)):
-				#value = grid.getCellValue((x, next))
-				#while next < 4 and not value:
 					next += 1
+				"""if the non zero cell was last cell of grid"""
 				if next >= 4:
 					next -= 1
 				
@@ -229,8 +229,6 @@ class PlayerAI (BaseAI):
 			current = 0
 			next = current + 1
 			while next < 4 :
-				#value = grid.getCellValue((next, y))
-				#while next < 4 and not value:
 				while next < 4 and not grid.getCellValue((next, y)):
 					next += 1
 				if next >= 4:
@@ -252,7 +250,17 @@ class PlayerAI (BaseAI):
 
 		return max(total[0], total[1]) + max(total[2],total[3])
 
+
 	def smoothness(self, grid):
+		"""
+			Difference in log of two non zero neighbouring tiles
+			(skip the zeros tiles in between)
+			in Down and Left direction
+
+			Zero smoothness is the best
+			(All values in rows and columns of non - negative tiles is same)
+			More negative value of smoothness denotes neighbouring tiles have different value
+		"""
 		smoothness = 0
 		for x in range(0,4):
 			for y in range(0,4):
@@ -261,7 +269,16 @@ class PlayerAI (BaseAI):
 					cell_value = log(cell_value, 2)
 					for direction in range(1,3):
 						dir_vector = directionVectors[direction]
-						next_cell_pos = self.findFarthestPosition(grid, (x, y), dir_vector)
+
+						"""
+							Gets the position of nearest next tile in direction(dir_vector)
+							that is not zero
+							Will return out of bound tile if non zero tile not found
+						"""
+						next_cell_pos = (x + dir_vector[0], y + dir_vector[1])
+
+						while not grid.crossBound(next_cell_pos) and grid.getCellValue(next_cell_pos) == 0:
+							next_cell_pos = (next_cell_pos[0] + dir_vector[0], next_cell_pos[1] + dir_vector[1])
 
 						new_cell_value = grid.getCellValue(next_cell_pos)
 						if new_cell_value :
@@ -269,44 +286,45 @@ class PlayerAI (BaseAI):
 							smoothness -= fabs(cell_value - new_cell_value)
 		return smoothness
 
-	def findFarthestPosition(self, grid, cell_pos, dir_vector):
-
-		previous_cell_pos = cell_pos
-		cell_pos = (previous_cell_pos[0] + dir_vector[0], previous_cell_pos[1] + dir_vector[1])
-
-		while not grid.crossBound(cell_pos) and grid.getCellValue(cell_pos) == 0:
-			previous_cell_pos = cell_pos
-			cell_pos = (previous_cell_pos[0] + dir_vector[0], previous_cell_pos[1] + dir_vector[1])
+	def getNearestNonZeroNeighbour(self, grid, cell_pos, dir_vector):
+		"""
+			Returns the position of nearest tile in direction(dir_vector)
+			that is not zero
+			Will return out of bound tile if non zero tile not found
+		"""
 		
 		return cell_pos
 
-	def islands(self, grid):
-		islands = 0
+	def isolated_cells(self, grid):
+		"""
+			Returns number of isolated cells
+		"""
+		isolated_cells = 0
 
-		def markCells(x, y, cell_value):
+		def visitCell(x, y, cell_value):
 			cur_posXY = (x,y)
-			if not grid.crossBound(cur_posXY) and not mark[x][y] :
+			if not grid.crossBound(cur_posXY) and not visited[x][y] :
 				cur_cell_value = grid.getCellValue(cur_posXY)
 			 	if cur_cell_value and cur_cell_value == cell_value :
-			 		mark[x][y] = True
+			 		visited[x][y] = True
 			 		for dir_vector in directionVectors:
-			 			markCells(x + dir_vector[0], y + dir_vector[1], cell_value)
+			 			visitCell(x + dir_vector[0], y + dir_vector[1], cell_value)
 
-		mark = [[None]*4]*4
+		visited = [[None]*4]*4
 		for x in range(0,4):
 			for y in range(0,4):
 				if grid.getCellValue((x, y)):
-					mark[x][y] = False
+					visited[x][y] = False
 
 		for x in range(0,4):
 			for y in range(0,4):
 				posXY = (x,y)
 				val = grid.getCellValue(posXY)
-				if val and not mark[x][y]:
-					islands += 1
-					markCells(x, y, val)
+				if val and not visited[x][y]:
+					isolated_cells += 1
+					visitCell(x, y, val)
 
-		return islands
+		return isolated_cells
 
 		
 
