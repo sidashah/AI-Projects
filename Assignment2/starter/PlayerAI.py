@@ -1,10 +1,13 @@
 from random import randint
 from BaseAI import BaseAI
 from math import log, fabs
-from collections import deque
 import time
 from sys import maxint
-import operator
+
+"""
+	UNI:sas2387
+"""
+
 
 directionVectors = (UP_VEC, DOWN_VEC, LEFT_VEC, RIGHT_VEC) = ((-1, 0), (1, 0), (0, -1), (0, 1))
 move ={0:"Up", 1:"Down", 2:"Left", 3:"Right"}
@@ -98,46 +101,30 @@ class PlayerAI (BaseAI):
 				get most minimum evaluations for min
 			"""
 			valid_tile_pos =  grid.getAvailableCells()
-			"""scores = {2:[],4:[]}
+			grid_evals = {2:[],4:[]}
 			best_locval = []
 
-			for value in scores:
+			for value in grid_evals:
 				for i in range(0,len(valid_tile_pos)):
-					scores[value].append(0)
+					grid_evals[value].append(0)
 					tile_pos = valid_tile_pos[i]
 					grid.setCellValue(tile_pos, value)
-					scores[value][i] = -self.smoothness(grid) + self.isolated_cells(grid)
+					grid_evals[value][i] = -self.smoothness(grid)
 					grid.setCellValue(tile_pos, 0)
 
-			max_score = max(scores[2] + scores[4])
+			max_score = max(grid_evals[2] + grid_evals[4])
 			
-			for j in range(0,len(scores[2])):
-				if scores[2][j] == max_score:
+			for j in range(0,len(grid_evals[2])):
+				if grid_evals[2][j] == max_score:
 					best_locval.append({"position":valid_tile_pos[j], "value":2})
 			
-			for j in range(0,len(scores[4])):
-				if scores[4][j] == max_score:
+			for j in range(0,len(grid_evals[4])):
+				if grid_evals[4][j] == max_score:
 					best_locval.append({"position":valid_tile_pos[j], "value":4})
 			
 			for placement in best_locval:
 				position = placement["position"]
-				value = placement["value"]"""
-			for tile_pos in valid_tile_pos:
-				value = 2
-				position = tile_pos
-				new_grid = grid.clone()
-				new_grid.setCellValue(position, value)
-				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
-				new_grid.setCellValue(position, 0)
-
-				if result["score"] < best_score:
-					best_score = result["score"]
-
-				if alpha >= best_score:
-					return {"move":None, "score":alpha}
-
-				value = 4
-				position = tile_pos
+				value = placement["value"]
 				new_grid = grid.clone()
 				new_grid.setCellValue(position, value)
 				result = self.search(new_grid, depth, alpha, best_score, PLAYER)
@@ -153,9 +140,9 @@ class PlayerAI (BaseAI):
 
 	def eval(self, grid):
 		mono_weight = 1
-		empty_weight = 4
+		empty_weight = 5 #3
 		smooth_weight = 0.1
-		max_weight = 3
+		max_weight = 5 #4
 		
 		emptytiles_heuristics = 0
 		
@@ -285,47 +272,6 @@ class PlayerAI (BaseAI):
 							new_cell_value = log(new_cell_value, 2)
 							smoothness -= fabs(cell_value - new_cell_value)
 		return smoothness
-
-	def getNearestNonZeroNeighbour(self, grid, cell_pos, dir_vector):
-		"""
-			Returns the position of nearest tile in direction(dir_vector)
-			that is not zero
-			Will return out of bound tile if non zero tile not found
-		"""
-		
-		return cell_pos
-
-	def isolated_cells(self, grid):
-		"""
-			Returns number of isolated cells
-		"""
-		isolated_cells = 0
-
-		def visitCell(x, y, cell_value):
-			cur_posXY = (x,y)
-			if not grid.crossBound(cur_posXY) and not visited[x][y] :
-				cur_cell_value = grid.getCellValue(cur_posXY)
-			 	if cur_cell_value and cur_cell_value == cell_value :
-			 		visited[x][y] = True
-			 		for dir_vector in directionVectors:
-			 			visitCell(x + dir_vector[0], y + dir_vector[1], cell_value)
-
-		visited = [[None]*4]*4
-		for x in range(0,4):
-			for y in range(0,4):
-				if grid.getCellValue((x, y)):
-					visited[x][y] = False
-
-		for x in range(0,4):
-			for y in range(0,4):
-				posXY = (x,y)
-				val = grid.getCellValue(posXY)
-				if val and not visited[x][y]:
-					isolated_cells += 1
-					visitCell(x, y, val)
-
-		return isolated_cells
-
 		
 
 	
