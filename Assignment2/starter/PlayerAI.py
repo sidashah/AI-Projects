@@ -44,7 +44,7 @@ class PlayerAI (BaseAI):
 				best_move = new_best_move
 
 			depth += 1
-			print depth
+			#print depth
 		#end of while loop, return best move if not None or random move
 		if best_move["move"] is not None:
 			return best_move["move"]
