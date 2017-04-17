@@ -58,8 +58,8 @@ def backtracking_search(sudoku, sudoku_neighbours):
 def backtrack(assignment, sudoku, sudoku_neighbours):
 	if len(assignment.keys()) == initial_unassigned:
 		return [True,assignment]
-	var = select_unassigned_variable()
-	for value in order_domain_values(var, assignment, sudoku, sudoku_neighbours):
+	var, domain = select_mrv_unassigned_variable(assignment, sudoku, sudoku_neighbours)
+	for value in domain:
 		if does_not_conflict(var,value, sudoku, sudoku_neighbours, assignment):
 			assignment[var] = value
 			if forward_check(assignment, sudoku, sudoku_neighbours):
@@ -70,12 +70,18 @@ def backtrack(assignment, sudoku, sudoku_neighbours):
 	unassigned.append(var)
 	return [False]
 
-count = 1
-def select_unassigned_variable():
-	global count
-	to_be_assigned = unassigned.popleft()
-	count += 1
-	return to_be_assigned
+def select_mrv_unassigned_variable(assignment, sudoku, sudoku_neighbours):
+	min = 10
+	mrv_var = None
+	mrv_domain = set()
+	for cell in unassigned:
+		domain = order_domain_values(cell, assignment, sudoku, sudoku_neighbours)
+		if len(domain) < min:
+			min = len(domain)
+			mrv_var = cell
+			mrv_domain = domain
+	unassigned.remove(mrv_var)
+	return (mrv_var, mrv_domain)
 
 def order_domain_values(location, assignment, sudoku, sudoku_neighbours):
 	domain = set([1,2,3,4,5,6,7,8,9])
