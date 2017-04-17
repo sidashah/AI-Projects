@@ -33,31 +33,51 @@ End of AC3 Algorithm
 Backtracking algorithm
 """
 
-unassigned = list()
+unassigned = deque()
 initial_unassigned = 0
 
 def backtracking_search(sudoku, sudoku_neighbours):
 	global unassigned
 	global initial_unassigned
-	unassigned.clear()
+	unassigned = deque()
 	for row in range(0,9):
 		for col in range(0,9):
-			if sudoku[row][col] == '?':
+			if sudoku[row][col] == 0:
 				unassigned.append((row,col))
 	initial_unassigned = len(unassigned)
 	assignment = dict()
-	backtrack(assignment,sudoku, sudoku_neighbours)
+	solution = backtrack(assignment,sudoku, sudoku_neighbours)
+	if solution[0] == True:
+		for key, value in solution[1].iteritems():
+			sudoku[key[0]][key[1]] = value
+		answer_string = ''.join(str(cell) for row in sudoku for cell in row)
+		return [True, answer_string]
+	else:
+		return [False]
 
 def backtrack(assignment, sudoku, sudoku_neighbours):
 	if len(assignment.keys()) == initial_unassigned:
-		return assignment
+		return [True,assignment]
 	var = select_unassigned_variable()
-	
-	
-def select_unassigned_variable():
-	return unassigned.popleft()
+	for value in order_domain_values(var, assignment, sudoku, sudoku_neighbours):
+		if does_not_conflict(var,value, sudoku, sudoku_neighbours, assignment):
+			assignment[var] = value
+			if forward_check(assignment, sudoku, sudoku_neighbours):
+				result = backtrack(assignment, sudoku, sudoku_neighbours)
+				if result[0] == True:
+					return result
+			assignment.pop(var, None)
+	unassigned.append(var)
+	return [False]
 
-def order_domain_values(location, assignment, sudoku, sudoku_neighbours) :
+count = 1
+def select_unassigned_variable():
+	global count
+	to_be_assigned = unassigned.popleft()
+	count += 1
+	return to_be_assigned
+
+def order_domain_values(location, assignment, sudoku, sudoku_neighbours):
 	domain = set([1,2,3,4,5,6,7,8,9])
 	notallowed = set()
 	neighbours = sudoku_neighbours[location[0]][location[1]]
@@ -70,11 +90,30 @@ def order_domain_values(location, assignment, sudoku, sudoku_neighbours) :
 			notallowed.add(assignment[(n[0], n[1])])
 
 	return domain.difference(notallowed)
+	#return domain
 
+def does_not_conflict(var, assigned_value, sudoku, sudoku_neighbours, assignment):
+	neighbours = sudoku_neighbours[var[0]][var[1]]
+
+	for n in neighbours:
+		val = sudoku[n[0]][n[1]]
+		if assigned_value == val:
+			return False
+		elif (n[0],n[1]) in assignment:
+			if assigned_value == assignment[(n[0],n[1])]:
+				return False
+
+	return True
+
+def forward_check(assignment, sudoku, sudoku_neighbours):
+	for item in unassigned:
+		item_domain = order_domain_values(item, assignment, sudoku, sudoku_neighbours)
+		if len(item_domain) == 0:
+			return False
+	return True
 """
 End of Backtracking algorithm
 """
-
 
 def solve_sudoku(input_string, type):
 	#input_string = "000100702030950000001002003590000301020000070703000098800200100000085060605009000"
@@ -151,7 +190,7 @@ def solve_sudoku(input_string, type):
 		else:
 			return [False]
 	elif type == 'BACKTRACKING':
-		backtracking_search(sudoku, sudoku_neighbours)
+		return backtracking_search(sudoku, sudoku_neighbours)
 
 
 def check(sudoku_domain):
@@ -170,28 +209,32 @@ Execution starts over here
 """
 
 if len(sys.argv) > 1:
-	input_string = sys.argv[1]
+	algo_type = sys.argv[1]
+	input_string = sys.argv[2]
 
 	if input_string == 'file':
-		filename = sys.argv[2]
+		filename = sys.argv[3]
 		with open(filename, 'rb') as file:
 			content = file.read().splitlines()
 			no = 1
 			for line in content:
-				answer = solve_sudoku(line,'AC3')
+				answer = solve_sudoku(line,algo_type)
 				if answer[0] == True:
 					print no
-					if len(sys.argv) == 4 and sys.argv[3] == 'debug':
+					if len(sys.argv) == 5 and sys.argv[4] == 'debug':
 						sol = ''.join(str(ele) for ele in answer[1])
 						print sol
 				no += 1
 	else:
-		solveSudoku(input_string)
+		answer = solve_sudoku(input_string,algo_type)
+		if answer[0] == True:
+			print "Answer\n",answer[1]
 else:
 	print 'Invalid Format:'
-	print 'To solve single sudoku, use command: python driver.py <input_string>'
-	print 'To solve multiple sudokus, use command: python driver.py file <filename>'
-	print 'To solve mutliple sudokus and also output solution, use command: python driver.py file <filename> debug'
+	print 'To solve single sudoku, use command: python driver.py <algo-type> <input_string>'
+	print 'To solve multiple sudokus, use command: python driver.py <algo-type> file <filename>'
+	print 'To solve mutliple sudokus and also output solution, use command: python driver.py <algo-type> file <filename> debug'
+	print 'Algo-type: AC3, BACKTRACKING '
 
 
 
