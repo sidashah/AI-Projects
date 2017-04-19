@@ -342,10 +342,10 @@ if len(sys.argv) > 1:
 							print sol
 					prob_no += 1
 		else:
-			input_string = sys.argv[3]
 			answer = solve_sudoku(input_string, algo_type)
 			if answer[0] is True:
-				print answer[1]
+				sol = ''.join(str(ele) for ele in answer[1])
+				print sol
 else:
 	print 'Invalid Format:'
 	print 'To solve single sudoku using backtracking, use command: python driver.py <input_string>'
