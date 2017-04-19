@@ -322,7 +322,9 @@ if len(sys.argv) > 1:
 	if input_str != 'AC3' and input_str != 'BACKTRACKING':
 		answer = solve_sudoku(input_str, 'BACKTRACKING')
 		if answer[0] is True:
-			print answer[1]
+			with open('output.txt', 'wb') as outputfile:
+				outputfile.write(answer[1])
+	# All below code is for the wrapper script or some extra code to solve sudoku with diff algo
 	elif input_str == 'AC3' or input_str == 'BACKTRACKING':
 		algo_type = input_str
 		input_string = sys.argv[2]
