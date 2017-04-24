@@ -1,0 +1,66 @@
+Results and Observations:
+
+==========================
+AC3
+==========================
+For file sudokus_start.txt
+Number of Sudokus solved: 3
+Sudokus solved :1, 2, 332
+
+1 	(003020600900305001001806400008102900700000008006708200002609500800203009005010300, Time: 0.017 seconds)
+	Solution : 483921657967345821251876493548132976729564138136798245372689514814253769695417382
+2 	(000260701680070090190004500820100040004602900050003028009300074040050036703018000, Time: 0.018 seconds)
+	Solution : 483921657967345821251876493548132976729564138136798245372689514814253769695417382
+332 (000001000020000008691200000000000014102506003800020506005000000730000000006319405, Time: 0.032 seconds)
+	Solution : 35847162942796315869128534756973821414259678387312459691564783273485296128631947
+
+Running time : 4.561 seconds for 400 puzzle file
+
+Below are the details running using -m cProfile flag and how you can run the script
+
+$ python -m cProfile driver.py AC3 file sudokus_start.txt 
+1
+2
+332
+         10273642 function calls in 4.561 seconds
+
+...
+   203200    0.056    0.000    0.056    0.000 {range}
+
+
+Explanation:
+AC3 tries to make all the arcs consistent. Even if we are able to make all arcs in the sudoku consistent.
+The domain of all the elements might not have reduce to single element list and thus we can't say what
+values we should we fill at that element.
+
+Thus, we are able to solve very less number of sudoku puzzles using AC3 algorithm.
+
+===========================
+BACKTRACKING
+===========================
+For file sudokus_start.txt
+Number of Sudokus solved: 400
+Sudokus solved : 1, 2, ... , 400
+Running time: 88.880 seconds for 400 puzzles
+
+
+$python -m cProfile driver.py BACKTRACKING file sudokus_start.txt 
+1
+2
+3
+.
+.
+.
+400
+         127159583 function calls (127016049 primitive calls) in 88.880 seconds
+
+...
+   207200    0.055    0.000    0.055    0.000 {range}
+
+Explanation:
+Backtracking algorithm solves all the puzzles and is able to so because it tries to fill in every possible value
+to the unassigned cells and sees which assignment makes the sudoku consistent and completely filled. Thus, backtracking
+may take more time than AC3 to solve but it is guaranteed to find a solution for a valid sudoku which AC3 can't
+
+Also using heuristcs like minimum remaining values and forward checking, we can reduce the time taken 
+by backtracking algorithm drastically.
