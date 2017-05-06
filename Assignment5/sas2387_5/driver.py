@@ -6,7 +6,6 @@ import pandas as pd
 import re
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
-from sklearn.model_selection import cross_val_score
 
 """
 Reference:
@@ -16,6 +15,12 @@ For SGD Classifier
 http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html
 For CountVectorizer
 http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html
+For TfidfVectorizer
+http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html
+For GridSearchCV
+http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
+For Pandas read_csv
+http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
 """
 
 # Changed path according to 
@@ -48,7 +53,7 @@ def imdb_data_preprocess(inpath, outpath="./", name="imdb_tr.csv", mix=False):
     imdb_tr.csv. Each text file in train_path should be stored 
     as a row in imdb_tr.csv. And imdb_tr.csv should have three 
     columns, "row_number", "text" and label'''
-    stopwords_filename = "stopwords.en.txt"
+    stopwords_filename = "../stopwords.en.txt"
     stopwords = []
     reviews = []
 
@@ -130,9 +135,17 @@ def get_processed_test_data():
 
 if __name__ == "__main__":
     train_data_file = imdb_data_preprocess(train_path)
-    train_data_file = 'imdb_tr.csv'
     df = pd.read_csv(train_data_file)
     text = df['text']
+
+    """
+    Using GridSearchCV, I was able to find out that using lower alpha for
+    models using Bigram representation gave better accuracy. So ,I have used 
+    alpha of 0.00001 for bigram representation. 
+    Using lower alpha for unigram model does not give any significant
+    advantage over the accuracy of prediction and so they are set to the
+    default 0.0001 of SGDClassifier.
+    """
 
     '''train a SGD classifier using unigram representation,
     predict sentiments on imdb_te.csv, and write output to
@@ -141,64 +154,12 @@ if __name__ == "__main__":
     vectorizer = CountVectorizer(ngram_range=(1,1))
     train_X = vectorizer.fit_transform(text)
     Y = np.array(df['polarity'])
-    clf = SGDClassifier(loss='hinge', penalty='l1')
+    clf = SGDClassifier(loss='hinge', penalty='l1') # default alpha
     clf.fit(train_X, Y)
     test_data = get_processed_test_data()
     test_X = vectorizer.transform(test_data)
     answer = clf.predict(test_X)
     np.savetxt(fname='unigram.output.txt', X=answer, fmt='%d')
-
-    ''' Checking accuracy'''
-    print cross_val_score(clf, X=train_X,y=Y,cv=5)
-
-    inpath = '../aclImdb/test'
-    review_X = []
-    review_Y = []
-
-    positive_file_path = join(inpath,"pos")
-    negative_file_path = join(inpath,"neg")
-    stopwords_filename = "../stopwords.en.txt"
-    stopwords = []
-
-    with open(stopwords_filename,'rb+') as stopwords_file:
-        stopwords = stopwords_file.read().split('\n')
-
-    positive_review_files = listdir(positive_file_path)
-    for file_path in positive_review_files:
-        review_file = join(positive_file_path, file_path)
-        with open(review_file, 'rb+') as text_file:
-            review = text_file.read()
-
-            review = re.sub(r'[^\x00-\x7F]+',' ', review) # remove all characters other than ASCII with space
-
-            for p in string.punctuation:
-                review = review.replace(p, ' ')
-            reviewwords  = [word.strip().lower() for word in review.split(' ') if word.lower() not in stopwords and not word.isdigit()]
-            review = ' '.join(reviewwords)
-
-            review_X.append(review)
-            review_Y.append(1)
-
-    negative_review_files = listdir(negative_file_path)
-    for file_path in negative_review_files:
-        review_file = join(negative_file_path, file_path)
-        with open(review_file, 'rb+') as text_file:
-            review = text_file.read()
-
-            review = re.sub(r'[^\x00-\x7F]+',' ', review) # remove all characters other than ASCII with space
-
-            for p in string.punctuation:
-                review = review.replace(p, ' ')
-            reviewwords  = [word.strip().lower() for word in review.split(' ') if word.lower() not in stopwords and not word.isdigit()]
-            review = ' '.join(reviewwords)
-
-            review_X.append(review)
-            review_Y.append(0)
-
-    vector_X = vectorizer.transform(review_X)
-    Y = np.array(review_Y)
-    print "Unigram"
-    print clf.score(vector_X, Y)
 
     '''train a SGD classifier using bigram representation,
     predict sentiments on imdb_te.csv, and write output to
@@ -206,20 +167,12 @@ if __name__ == "__main__":
     vectorizer = CountVectorizer(ngram_range=(2,2))
     train_X = vectorizer.fit_transform(text)
     Y = np.array(df['polarity'])
-    clf = SGDClassifier(loss='hinge', penalty='l1')
+    clf = SGDClassifier(loss='hinge', penalty='l1', alpha=0.00001)
     clf.fit(train_X, Y)
     test_data = get_processed_test_data()
     test_X = vectorizer.transform(test_data)
     answer = clf.predict(test_X)
     np.savetxt(fname='bigram.output.txt', X=answer, fmt='%d')
-
-    ''' Checking accuracy'''
-    print cross_val_score(clf, X=train_X,y=Y,cv=5)
-    vector_X = vectorizer.transform(review_X)
-    Y = np.array(review_Y)
-    print "Bigram"
-    print clf.score(vector_X, Y)
-    
 
     '''train a SGD classifier using unigram representation
      with tf-idf, predict sentiments on imdb_te.csv, and write 
@@ -227,18 +180,11 @@ if __name__ == "__main__":
     vectorizer = TfidfVectorizer(ngram_range=(1,1))
     train_X = vectorizer.fit_transform(text)
     Y = np.array(df['polarity'])
-    clf = SGDClassifier(loss='hinge', penalty='l1')
+    clf = SGDClassifier(loss='hinge', penalty='l1') # default alpha
     clf.fit(train_X, Y)
     test_X = vectorizer.transform(test_data)
     answer = clf.predict(test_X)
     np.savetxt(fname='unigramtfidf.output.txt', X=answer, fmt='%d')
-
-    ''' Checking accuracy'''
-    print cross_val_score(clf, X=train_X,y=Y,cv=5)
-    vector_X = vectorizer.transform(review_X)
-    Y = np.array(review_Y)
-    print "Tfidf-Unigram"
-    print clf.score(vector_X, Y)
 
     '''train a SGD classifier using bigram representation
      with tf-idf, predict sentiments on imdb_te.csv, and write 
@@ -247,15 +193,8 @@ if __name__ == "__main__":
     vectorizer = TfidfVectorizer(ngram_range=(2,2))
     train_X = vectorizer.fit_transform(text)
     Y = np.array(df['polarity'])
-    clf = SGDClassifier(loss='hinge', penalty='l1')
+    clf = SGDClassifier(loss='hinge', penalty='l1', alpha=0.00001)
     clf.fit(train_X, Y)
     test_X = vectorizer.transform(test_data)
     answer = clf.predict(test_X)
     np.savetxt(fname='bigramtfidf.output.txt', X=answer, fmt='%d')
-
-    ''' Checking performance'''
-    print cross_val_score(clf, X=train_X,y=Y,cv=5)
-    vector_X = vectorizer.transform(review_X)
-    Y = np.array(review_Y)
-    print "Tfidf- Bigram"
-    print clf.score(vector_X, Y)
